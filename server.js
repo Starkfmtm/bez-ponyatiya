@@ -74,7 +74,7 @@ io.on('connection', (socket) => {
       players: [
         {
           socketId: socket.id,
-          name: username,
+          name: username.trim(),
           isHost: true,
           character: null,
           targetPlayerId: null,
@@ -101,7 +101,7 @@ io.on('connection', (socket) => {
     console.log(`Комната ${roomCode} успешно создана игроком ${username}`);
   });
 
-  // 2. Вход в комнату по коду
+  // 2. Вход в комнату по коду (С проверкой на дубликаты имен)
   socket.on('join_room', (data) => {
     const { username, roomCode } = data;
     const cleanCode = roomCode ? roomCode.toUpperCase().trim() : '';
@@ -117,10 +117,17 @@ io.on('connection', (socket) => {
       return socket.emit('error_message', 'Комната уже заполнена (макс. 8 человек).');
     }
 
+    // Проверка на уникальность имени внутри комнаты
+    const trimmedName = username ? username.trim() : '';
+    const nameExists = room.players.some(p => p.name.toLowerCase() === trimmedName.toLowerCase());
+    if (nameExists) {
+      return socket.emit('error_message', 'Это имя уже занято в этой комнате! Выбери другое.');
+    }
+
     // Добавляем нового игрока
     const newPlayer = {
       socketId: socket.id,
-      name: username,
+      name: trimmedName,
       isHost: false,
       character: null,
       targetPlayerId: null,
@@ -142,7 +149,7 @@ io.on('connection', (socket) => {
       });
     });
 
-    console.log(`Игрок ${username} вошел в комнату ${cleanCode}`);
+    console.log(`Игрок ${trimmedName} вошел в комнату ${cleanCode}`);
   });
 
   // 3. Запуск игры (только для Хоста)
