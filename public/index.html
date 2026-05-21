@@ -4,9 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Без Понятия!</title>
+  <!-- Подключение Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Подключение клиентской библиотеки Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
+  <!-- Подключение Howler.js для звуков -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+  <!-- Подключение шрифтов -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   
   <style>
@@ -41,9 +45,9 @@
     .animate-winner {
       animation: celebrate 2s ease-in-out infinite;
     }
-    /* Стили для летающих реакций */
+    /* Стили для летящих спам-реакций */
     .floating-emoji {
-      position: absolute;
+      position: fixed;
       bottom: 20px;
       pointer-events: none;
       z-index: 100;
@@ -58,18 +62,26 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 selection:bg-pink-500 selection:text-white relative overflow-x-hidden">
 
-  <!-- УВЕДОМЛЕНИЯ (ТОСТЫ) -->
+  <!-- ПОЛНОЭКРАННАЯ РИСОВАЛКА НА ПОЛЯХ СТРАНИЦЫ -->
+  <canvas id="bg-drawing-canvas" class="fixed inset-0 z-0 cursor-crosshair"></canvas>
+
+  <!-- Кнопка очистки полноэкранного рисунка -->
+  <button onclick="clearBgCanvas()" class="fixed bottom-4 left-4 bg-indigo-950/90 border-4 border-black text-white hover:text-pink-400 py-2.5 px-4 rounded-2xl z-30 font-black text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-y-[2px]">
+    🧹 Стереть пометки
+  </button>
+
+  <!-- СОВРЕМЕННЫЙ НЕБЛОКИРУЮЩИЙ ТОСТ ДЛЯ УВЕДОМЛЕНИЙ -->
   <div id="game-toast" class="fixed top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-black border-4 border-black px-6 py-3 rounded-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 transform scale-0 transition-all duration-300">
     <span id="game-toast-text">Сообщение</span>
   </div>
 
-  <!-- КОНТЕЙНЕР ДЛЯ РЕАКЦИЙ -->
+  <!-- КАРКАС ДЛЯ ЛЕТАЮЩИХ СПАМ-РЕАКЦИЙ -->
   <div id="reaction-container" class="absolute inset-0 pointer-events-none overflow-hidden z-40"></div>
 
   <!-- ============================================== -->
-  <!-- ЭКРАН 1: ГЛАВНЫЙ ЭКРАН                         -->
+  <!-- ЭКРАН 1: ГЛАВНЫЙ ЭКРАН (ВХОД)                  -->
   <!-- ============================================== -->
-  <main id="screen-welcome" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative transition-all duration-300 transform opacity-100 scale-100">
+  <main id="screen-welcome" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative z-10 transition-all duration-300 transform opacity-100 scale-100">
     <header class="text-center mb-4 relative z-10">
       <h1 class="font-title text-4xl md:text-5xl font-black tracking-wider uppercase drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">
         <span class="text-yellow-400 rotate-[-3deg] inline-block mr-2">БЕЗ</span><br>
@@ -112,7 +124,7 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 2: ЛОББИ (ОЖИДАНИЕ)                      -->
   <!-- ============================================== -->
-  <main id="screen-lobby" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden transition-all duration-300 transform opacity-0 scale-95 animate-fade-in">
+  <main id="screen-lobby" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden z-10 transition-all duration-300 transform opacity-0 scale-95">
     <header class="text-center mb-6">
       <span class="text-xs font-black uppercase tracking-widest text-indigo-300">Код твоей комнаты:</span>
       <div id="lobby-code-display" class="mt-1 inline-block bg-cyan-400 text-black border-4 border-black px-6 py-2 rounded-2xl font-title text-4xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[-1.5deg]">----</div>
@@ -144,9 +156,9 @@
   </main>
 
   <!-- ============================================== -->
-  <!-- ЭКРАН 3: ЗАГАДЫВАНИЕ                           -->
+  <!-- ЭКРАН 3: ЗАГАДЫВАНИЕ (ВВОД СЛОВ)               -->
   <!-- ============================================== -->
-  <main id="screen-input" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative overflow-hidden hidden transition-all duration-300 transform opacity-0 scale-95">
+  <main id="screen-input" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative overflow-hidden hidden z-10 transition-all duration-300 transform opacity-0 scale-95">
     <div class="absolute top-0 left-0 w-full h-3 bg-black/40"><div id="timer-bar" class="h-full bg-pink-500 transition-all duration-1000 ease-linear" style="width: 100%;"></div></div>
     
     <header class="text-center mt-2 mb-4">
@@ -157,7 +169,7 @@
     <div class="flex justify-center mb-6 relative">
       <div class="absolute w-28 h-28 bg-indigo-950/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="w-28 h-28 relative z-10 animate-wiggle">
-        <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот">
+        <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот размышления">
       </div>
     </div>
 
@@ -185,10 +197,12 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 4: ИГРОВОЙ ПРОЦЕСС                       -->
   <!-- ============================================== -->
-  <main id="screen-game" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden transition-all duration-300 transform opacity-0 scale-95">
+  <main id="screen-game" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden z-10 transition-all duration-300 transform opacity-0 scale-95">
 
     <!-- Боковая панель быстрых реакций для отвечающих -->
     <div id="reaction-panel" class="absolute -left-12 top-1/2 -translate-y-1/2 flex flex-col gap-3 bg-indigo-950/80 p-2 rounded-2xl border-4 border-black z-30 hidden transition-all">
+      <!-- Добавлена большая спам-реакция ГО! -->
+      <button onclick="sendReaction('ГО!')" class="hover:scale-125 transition-transform text-lg font-black bg-yellow-400 text-black border-2 border-black rounded-lg px-1.5 py-0.5">ГО!</button>
       <button onclick="sendReaction('😂')" class="hover:scale-125 transition-transform text-2xl">😂</button>
       <button onclick="sendReaction('💩')" class="hover:scale-125 transition-transform text-2xl">💩</button>
       <button onclick="sendReaction('🎉')" class="hover:scale-125 transition-transform text-2xl">🎉</button>
@@ -204,7 +218,7 @@
     <!-- БЛОК А: Роль ОТВЕЧАЮЩЕГО -->
     <section id="game-answerer-zone" class="space-y-6 hidden">
       
-      <!-- Модалка проверки догадки игрока -->
+      <!-- Проверка догадки игрока -->
       <div id="guess-verification-block" class="bg-yellow-400 text-black border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1deg] hidden space-y-4 font-black">
         <h3 class="font-title text-lg font-black uppercase text-center">Проверка догадки!</h3>
         <p class="text-sm font-bold text-center">
@@ -239,28 +253,23 @@
       <div id="vote-progress-status" class="text-center text-xs font-bold text-indigo-300 hidden">
         Проголосовало: <span id="voted-count-display">0</span>/<span id="voters-total-display">0</span>
       </div>
-
-      <!-- ЛОКАЛЬНАЯ РИСОВАЛКА НА ЭКРАНЕ ОЖИДАНИЯ (Убивалка времени для отвечающих) -->
-      <div class="border-t-4 border-black/30 pt-4 text-center">
-        <p class="text-xs font-black uppercase text-yellow-300 tracking-wider mb-2">Скучаешь? Порисуй тут пальцем:</p>
-        <canvas id="drawing-canvas" width="300" height="150" class="mx-auto bg-indigo-950 border-4 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] cursor-crosshair"></canvas>
-        <button onclick="clearCanvas()" class="text-[10px] font-black uppercase tracking-wider text-pink-400 hover:text-white mt-1.5 transition-colors">🧹 Стереть художество</button>
-      </div>
     </section>
 
     <!-- БЛОК Б: Роль ОТГАДЫВАЮЩЕГО -->
     <section id="game-guesser-zone" class="space-y-6 hidden">
       
-      <!-- Экран ожидания проверки зала -->
-      <div id="guess-waiting-block" class="bg-indigo-950/80 p-6 rounded-2xl border-4 border-black text-center hidden transform rotate-[-0.5deg] space-y-4">
+      <!-- Ожидание решения зала c крупным крутящимся маскотом -->
+      <div id="guess-waiting-block" class="bg-indigo-950/80 p-6 rounded-2xl border-4 border-black text-center hidden transform rotate-[-0.5deg] space-y-6">
         <div class="flex justify-center relative">
           <div class="absolute w-28 h-28 bg-indigo-900/50 rounded-full border-4 border-dashed border-indigo-800/60 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
           <div class="w-28 h-28 relative z-10 animate-wiggle">
             <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот ожидания">
           </div>
         </div>
-        <p class="text-xs font-black uppercase text-pink-500 animate-pulse">Твоя догадка отправлена на проверку!</p>
-        <p class="font-black text-sm text-white mt-1">Остальные игроки решают, засчитать ли твой ответ...</p>
+        <div class="space-y-1">
+          <p class="text-xs font-black uppercase text-pink-500 animate-pulse">Твоя догадка отправлена на проверку!</p>
+          <p class="font-black text-sm text-white">Остальные игроки решают, засчитать ли твой ответ...</p>
+        </div>
       </div>
 
       <div class="text-center">
@@ -316,9 +325,9 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 5: ФИНАЛ (РЕЗУЛЬТАТЫ ИГРЫ)               -->
   <!-- ============================================== -->
-  <main id="screen-results" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden transition-all duration-300 transform opacity-0 scale-95">
+  <main id="screen-results" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden transition-all duration-300 transform opacity-0 scale-95 z-10">
     
-    <!-- Крупный динамический маскот на результатах -->
+    <!-- Крупный ДИНАМИЧЕСКИЙ маскот (радостный или грустный) -->
     <div class="flex justify-center mb-6 relative">
       <div class="absolute w-36 h-36 bg-indigo-950/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="w-32 h-32 relative z-10 animate-winner">
@@ -347,10 +356,18 @@
   </main>
 
   <script>
+    // Инициализация базы данных персонажей (на самом верху скрипта)
+    const famousCharacters = [
+      'Губка Боб', 'Шрек', 'Пикачу', 'Наруто', 'Миньон', 'Гомер Симпсон', 'Эльза',
+      'Дональд Трамп', 'Илон Маск', 'Майкл Джексон', 'Альберт Эйнштейн', 'Хасбик', 'Терминатор',
+      'Человек-Паук', 'Гарри Поттер', 'Дарт Вейдер', 'Капитан Джек Воробей', 'Шерлок Холмс', 'Бэтмен', 'Танос',
+      'Санта Клаус', 'Мона Лиза', 'Граф Дракула', 'Баба Яга', 'Агент 007'
+    ];
+
     const socket = io();
 
     // ==============================================
-    // АБСОЛЮТНО СТАБИЛЬНЫЙ ЗВУКОВОЙ ДВИЖОК
+    // ЗВУКОВОЙ ДВИЖОК (Браузерный Audio API — обходит любые CORS блокировки)
     // ==============================================
     const sfx = {
       click: new Audio('https://www.soundjay.com/buttons/sounds/button-16.mp3'),
@@ -360,13 +377,13 @@
 
     function playSound(sound) {
       if (sfx[sound]) {
-        sfx[sound].currentTime = 0;
-        sfx[sound].play().catch(e => console.log("Интерактивный звук заблокирован политикой браузера до первого клика:", e));
+        sfx[sound].currentTime = 0; // Сбрасываем в начало для повторного клика
+        sfx[sound].play().catch(e => console.log("Браузер заблокировал автовоспроизведение до первого клика:", e));
       }
     }
 
     // ==============================================
-    // СИСТЕМА НЕБЛОКИРУЮЩИХ ПЛАВНЫХ УВЕДОМЛЕНИЙ (ТОСТЫ)
+    // НЕБЛОКИРУЮЩЕЕ ПЛАВНОЕ УВЕДОМЛЕНИЕ (ТОСТ)
     // ==============================================
     function showToast(text, duration = 3000, isSuccess = true) {
       const toast = document.getElementById('game-toast');
@@ -456,23 +473,27 @@
     const btnRestart = document.getElementById('btn-restart');
     const btnMainMenu = document.getElementById('btn-main-menu');
 
-    // ПЛАВНЫЕ ПЕРЕХОДЫ МЕЖДУ ЭКРАНАМИ (Транзишны)
+    // ПЛАВНЫЕ ПЕРЕХОДЫ МЕЖДУ ЭКРАНАМИ (По джекбоксу)
     function showScreen(targetScreen) {
       const screens = [screenWelcome, screenLobby, screenInput, screenGame, screenResults];
       const currentScreen = screens.find(s => !s.classList.contains('hidden'));
       
       if (currentScreen && currentScreen !== targetScreen) {
+        // Затухание текущего
         currentScreen.classList.add('opacity-0', 'scale-95');
         currentScreen.classList.remove('opacity-100', 'scale-100');
         
         setTimeout(() => {
           currentScreen.classList.add('hidden');
+          
+          // Появление нового
           targetScreen.classList.remove('hidden');
-          targetScreen.offsetHeight; 
+          targetScreen.offsetHeight; // Триггер перерисовки
           targetScreen.classList.add('opacity-100', 'scale-100');
           targetScreen.classList.remove('opacity-0', 'scale-95');
         }, 300);
       } else {
+        // Самый первый запуск (без анимации затухания)
         targetScreen.classList.remove('hidden');
         targetScreen.classList.add('opacity-100', 'scale-100');
         targetScreen.classList.remove('opacity-0', 'scale-95');
@@ -508,7 +529,7 @@
       socket.emit('join_room', { username: name, roomCode: code });
     });
 
-    // КЛИК: Старт
+    // КЛИК: Старт (только Хост)
     btnStart.addEventListener('click', () => {
       playSound('click');
       socket.emit('start_game', { roomCode: currentRoomCode });
@@ -601,7 +622,7 @@
       updateLobbyUI(data.players);
     });
 
-    // ОБРАБОТКА ИЗМЕНЕНИЙ СОСТОЯНИЙ ИГРЫ
+    // ОБРАБОТКА СМЕНЫ СОСТОЯНИЙ ИГРЫ
     socket.on('game_state_update', (data) => {
       if (data.roomCode) {
         currentRoomCode = data.roomCode;
@@ -616,18 +637,17 @@
       else if (data.status === 'PLAYING') {
         activePlayerId = data.activePlayerId;
         showScreen(screenGame);
-        clearCanvas(); // Сбрасываем рисовалку на каждом новом ходу
 
         const activePlayer = data.players.find(p => p.socketId === activePlayerId);
         gameActivePlayer.textContent = activePlayer.name;
 
-        // Очистка модалок
+        // Сброс модалок
         document.getElementById('guess-verification-block').classList.add('hidden');
         document.getElementById('guess-waiting-block').classList.add('hidden');
         document.getElementById('btn-ask').disabled = false;
         document.getElementById('btn-guess-attempt').disabled = false;
 
-        // Локальная отрисовка двух видов историй вопросов
+        // Отрисовка раздельных историй
         renderHistory(data.myPersonalHistory, myPersonalHistoryLog);
         renderHistory(data.activePlayerHistory, gameHistoryLog);
 
@@ -655,13 +675,9 @@
           
           gameQuestionText.textContent = 'Ожидаем вопрос...';
           
-          // Скрываем кнопки голосования
+          // Скрываем кнопки и счетчик до момента отправки вопроса!
           votingButtonsGrid.classList.add('hidden');
-          
-          // Сразу инициализируем счетчик на экране
-          voteProgressStatus.classList.remove('hidden');
-          votedCountDisplay.textContent = '0';
-          votersTotalDisplay.textContent = data.players.length - 1;
+          voteProgressStatus.classList.add('hidden');
         }
       }
       else if (data.status === 'RESULTS') {
@@ -680,6 +696,10 @@
         gameQuestionText.textContent = `«${data.question}»`;
         votingButtonsGrid.classList.remove('hidden');
         
+        // Показываем счетчик и сбрасываем его перед голосованием!
+        voteProgressStatus.classList.remove('hidden');
+        votedCountDisplay.textContent = '0';
+
         const buttons = document.querySelectorAll('#voting-buttons-grid button');
         buttons.forEach(btn => btn.disabled = false);
       } else {
@@ -782,22 +802,20 @@
       const { emoji, senderName } = data;
       const container = document.getElementById('reaction-container');
 
-      // Создаем плавающее облачко со смайликом и ником
       const el = document.createElement('div');
       el.className = 'floating-emoji bg-indigo-950/90 text-white border-2 border-black px-3 py-1.5 rounded-full font-black text-sm flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]';
       el.innerHTML = `<span>${senderName}:</span> <span class="text-2xl">${emoji}</span>`;
 
-      // Генерируем случайное положение по горизонтали
       const randomX = Math.floor(Math.random() * 60) + 10; // от 10% до 70% ширины
       el.style.left = `${randomX}%`;
 
       container.appendChild(el);
+      playSound('click'); // Воспроизводим звук клика при вылете
 
-      // Автоматическое удаление элемента из дерева
       setTimeout(() => { el.remove(); }, 2500);
     });
 
-    // УНИВЕРСАЛЬНАЯ ОТРИСОВКА ИСТОРИИ (С защитой от длинных текстов!)
+    // УНИВЕРСАЛЬНАЯ ОТРИСОВКА ИСТОРИИ (С авто-переносом!)
     function renderHistory(historyArray, logElement) {
       logElement.innerHTML = '';
 
@@ -810,9 +828,7 @@
 
       historyArray.forEach(item => {
         const logItem = document.createElement('div');
-        // Защита от переполнения: верстка на гибкой сетке flex-col с автопереносом слов
         logItem.className = "flex flex-col gap-1 border-b border-black/20 pb-1.5 text-sm";
-        
         const verdictColor = item.verdict.includes('ДА') ? 'text-green-400' : (item.verdict.includes('НЕТ') ? 'text-red-400' : 'text-gray-400');
         
         logItem.innerHTML = `
@@ -835,7 +851,7 @@
         showToast(`🎉 ${data.playerName} правильно угадал, что он — ${data.character}!`, 4000, true);
       } else {
         playSound('incorrect');
-        showToast(`❌ Зал отклонил догадку игрока ${data.playerName}! Ход передан.`, 4000, false);
+        showToast(`❌ Зал посчитал догадку игрока ${data.playerName} неверной. Ход переходит дальше.`, 4000, false);
       }
     });
 
@@ -871,7 +887,7 @@
       }
     }
 
-    // ОТРИСОВКА ФИНАЛЬНЫХ РЕЗУЛЬТАТОВ (С динамическим маскотом)
+    // ОТРИСОВКА ФИНАЛЬНЫХ РЕЗУЛЬТАТОВ (С динамическим маскотом!)
     function updateResultsUI(players) {
       resultsList.innerHTML = '';
 
@@ -951,63 +967,84 @@
     }
 
     // ==============================================
-    // ЛОКАЛЬНАЯ РИСОВАЛКА НА CANVAS
+    // ПОЛНОЭКРАННАЯ РИСОВАЛКА НА CANVAS (НА ПОЛЯХ СТРАНИЦЫ)
     // ==============================================
-    const canvas = document.getElementById('drawing-canvas');
-    const ctx = canvas.getContext('2d');
-    let isDrawing = false;
+    const bgCanvas = document.getElementById('bg-drawing-canvas');
+    const bgCtx = bgCanvas.getContext('2d');
+    let isDrawingBg = false;
 
-    // Настройка кисти (стиль комиксов)
-    ctx.strokeStyle = '#facc15'; // Желтый неоновый цвет
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    // Палитра сочных неоновых цветов для кисти
+    const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849'];
+    const myBrushColor = playerColors[Math.floor(Math.random() * playerColors.length)];
 
-    function getCoords(e) {
-      const rect = canvas.getBoundingClientRect();
+    // Подстройка размера холста под размеры экрана при старте и ресайзе
+    function resizeCanvas() {
+      // Сохраняем временный рисунок при ресайзе
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = bgCanvas.width;
+      tempCanvas.height = bgCanvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(bgCanvas, 0, 0);
+
+      bgCanvas.width = window.innerWidth;
+      bgCanvas.height = window.innerHeight;
+
+      // Возвращаем рисунок обратно
+      bgCtx.drawImage(tempCanvas, 0, 0);
+      setupBrush();
+    }
+
+    function setupBrush() {
+      bgCtx.strokeStyle = myBrushColor;
+      bgCtx.lineWidth = 5;
+      bgCtx.lineCap = 'round';
+      bgCtx.lineJoin = 'round';
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function getBgCoords(e) {
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return {
-        x: clientX - rect.left,
-        y: clientY - rect.top
-      };
+      return { x: clientX, y: clientY };
     }
 
-    function startDraw(e) {
-      isDrawing = true;
-      const coords = getCoords(e);
-      ctx.beginPath();
-      ctx.moveTo(coords.x, coords.y);
+    function startDrawBg(e) {
+      // Разрешаем рисовать только на самом фоне (если кликнули мимо карточки игры)
+      if (e.target !== bgCanvas) return;
+      isDrawingBg = true;
+      const coords = getBgCoords(e);
+      bgCtx.beginPath();
+      bgCtx.moveTo(coords.x, coords.y);
     }
 
-    function draw(e) {
-      if (!isDrawing) return;
-      e.preventDefault(); // Предотвращаем скролл на мобильных устройствах
-      const coords = getCoords(e);
-      ctx.lineTo(coords.x, coords.y);
-      ctx.stroke();
+    function drawBg(e) {
+      if (!isDrawingBg) return;
+      const coords = getBgCoords(e);
+      bgCtx.lineTo(coords.x, coords.y);
+      bgCtx.stroke();
     }
 
-    function stopDraw() {
-      isDrawing = false;
-      ctx.closePath();
+    function stopDrawBg() {
+      isDrawingBg = false;
+      bgCtx.closePath();
     }
 
-    // Слушатели мыши
-    canvas.addEventListener('mousedown', startDraw);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDraw);
-    canvas.addEventListener('mouseleave', stopDraw);
+    // Слушатели для мыши
+    bgCanvas.addEventListener('mousedown', startDrawBg);
+    window.addEventListener('mousemove', drawBg);
+    window.addEventListener('mouseup', stopDrawBg);
 
-    // Слушатели тачскрина для мобилок
-    canvas.addEventListener('touchstart', startDraw);
-    canvas.addEventListener('touchmove', draw);
-    canvas.addEventListener('touchend', stopDraw);
+    // Слушатели для тачскрина мобилок
+    bgCanvas.addEventListener('touchstart', startDrawBg);
+    window.addEventListener('touchmove', drawBg);
+    window.addEventListener('touchend', stopDrawBg);
 
-    function clearCanvas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function clearBgCanvas() {
+      bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
     }
-    window.clearCanvas = clearCanvas;
+    window.clearBgCanvas = clearBgCanvas;
 
     socket.on('error_message', (message) => {
       showToast(message, 3000, false);

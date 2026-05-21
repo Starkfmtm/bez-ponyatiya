@@ -98,13 +98,13 @@ io.on('connection', (socket) => {
 
     const trimmedName = username ? username.trim() : '';
 
-    // Восстановление сессии для вылетевшего игрока
+    // БЕСШОВНОЕ ВОССТАНОВЛЕНИЕ СЕССИИ (Для Лобби и для Игры!)
     const existingPlayer = room.players.find(p => p.name.toLowerCase() === trimmedName.toLowerCase());
     if (existingPlayer) {
-      if (room.status === 'PLAYING') {
-        existingPlayer.socketId = socket.id;
-        socket.join(cleanCode);
+      existingPlayer.socketId = socket.id; // Перепривязываем сокет к имени
+      socket.join(cleanCode);
 
+      if (room.status === 'PLAYING') {
         const activePlayer = room.players[room.activePlayerIndex];
         socket.emit('game_state_update', {
           status: room.status,
@@ -114,10 +114,17 @@ io.on('connection', (socket) => {
           myPersonalHistory: existingPlayer.history,
           players: getMaskedPlayersFor(room, socket.id)
         });
-        return;
       } else {
-        return socket.emit('error_message', 'Это имя уже занято!');
+        // Если переподключаемся в состоянии Лобби
+        room.players.forEach(p => {
+          io.to(p.socketId).emit('room_state_update', {
+            roomCode: room.roomCode,
+            status: room.status,
+            players: getMaskedPlayersFor(room, p.socketId)
+          });
+        });
       }
+      return;
     }
 
     if (room.status !== 'LOBBY') {
@@ -231,6 +238,9 @@ io.on('connection', (socket) => {
     const activePlayer = room.players[room.activePlayerIndex];
     if (socket.id === activePlayer.socketId) return;
     if (room.votedPlayers.includes(socket.id)) return;
+
+    if (!room.votes.yes) room.votes.yes = 0;
+    if (!room.votes.no) room.votes.no = 0;
 
     room.votes[voteType]++;
     room.votedPlayers.push(socket.id);
