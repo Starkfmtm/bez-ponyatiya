@@ -8,6 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Подключение клиентской библиотеки Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
+  <!-- Подключение Howler.js для звуков -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
   <!-- Подключение шрифтов -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   
@@ -141,6 +143,7 @@
       <h1 class="font-title text-2xl font-black text-yellow-400 uppercase drop-shadow-[2px_2px_0px_rgba(0,0,0,1)] mt-1">Время пакостить!</h1>
     </header>
 
+    <!-- Крупный классический маскот в стиле главного меню -->
     <div class="flex justify-center mb-6 relative">
       <div class="absolute w-28 h-28 bg-indigo-950/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="w-28 h-28 relative z-10 animate-wiggle">
@@ -266,7 +269,8 @@
 
     <!-- ИСТОРИЯ ВОПРОСОВ ПАРТИИ (Персональная!) -->
     <section class="mt-6 border-t-4 border-black/40 pt-4">
-      <h3 class="text-xs font-black uppercase text-yellow-300 tracking-wider mb-2">История твоих вопросов:</h3>
+      <!-- Заголовок истории сделан динамическим -->
+      <h3 id="game-history-title" class="text-xs font-black uppercase text-yellow-300 tracking-wider mb-2">История твоих вопросов:</h3>
       <div id="game-history-log" class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-1.5 max-h-28 overflow-y-auto hidden">
         <!-- Наполняется JS -->
       </div>
@@ -403,6 +407,7 @@
     const votersTotalDisplay = document.getElementById('voters-total-display');
     const votingButtonsGrid = document.getElementById('voting-buttons-grid');
     const gameHistoryLog = document.getElementById('game-history-log');
+    const gameHistoryTitle = document.getElementById('game-history-title');
 
     // Элементы Results-экрана
     const resultsList = document.getElementById('results-list');
@@ -567,12 +572,16 @@
 
         if (socket.id === activePlayerId) {
           // МЫ УГАДЫВАЕМ
+          gameHistoryTitle.textContent = "История твоих вопросов:";
+          
           gameAnswererZone.classList.add('hidden');
           gameGuesserZone.classList.remove('hidden');
           questionInputBlock.classList.remove('hidden');
           liveVotesResults.classList.add('hidden');
         } else {
           // МЫ ОТВЕЧАЕМ
+          gameHistoryTitle.textContent = "История его вопросов:";
+          
           gameAnswererZone.classList.remove('hidden');
           gameGuesserZone.classList.add('hidden');
           
@@ -743,7 +752,7 @@
         card.className = `bg-yellow-100 text-black border-4 border-black p-3 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} flex flex-col justify-between min-h-[80px]`;
         card.innerHTML = `
           <span class="font-black text-lg break-words leading-tight">${player.name} ${player.name === myName ? '(Ты)' : ''}</span>
-          ${player.isHost ? '<span class="self-end text-[10px] font-black uppercase bg-pink-500 text-white px-2 py-0.5 rounded border-2 border-black rotate-[3deg]">VIP</span>' : '<span class="self-end text-[10px] font-black uppercase text-gray-500">Готов</span>'}
+          ${player.isHost ? '<span class="self-end text-[10px] font-black uppercase bg-pink-500 text-white px-2 py-0.5 rounded border-2 border-black rotate-[3deg]">ХОСТ</span>' : '<span class="self-end text-[10px] font-black uppercase text-gray-500">Готов</span>'}
         `;
         playersList.appendChild(card);
       });
