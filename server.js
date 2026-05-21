@@ -57,7 +57,7 @@ io.on('connection', (socket) => {
     const roomCode = generateRoomCode();
     const newRoom = {
       roomCode,
-      status: 'LOBBY',
+      status: 'LOBBY', // LOBBY, INPUTTING, PLAYING, RESULTS
       players: [
         {
           socketId: socket.id,
@@ -68,7 +68,7 @@ io.on('connection', (socket) => {
           targetName: null,
           hasGuessed: false,
           questionsCount: 0,
-          history: []
+          history: [] 
         }
       ],
       activePlayerIndex: 0,
@@ -98,10 +98,9 @@ io.on('connection', (socket) => {
 
     const trimmedName = username ? username.trim() : '';
 
-    // БЕСШОВНОЕ ВОССТАНОВЛЕНИЕ СЕССИИ (Для Лобби и для Игры!)
     const existingPlayer = room.players.find(p => p.name.toLowerCase() === trimmedName.toLowerCase());
     if (existingPlayer) {
-      existingPlayer.socketId = socket.id; // Перепривязываем сокет к имени
+      existingPlayer.socketId = socket.id;
       socket.join(cleanCode);
 
       if (room.status === 'PLAYING') {
@@ -115,7 +114,6 @@ io.on('connection', (socket) => {
           players: getMaskedPlayersFor(room, socket.id)
         });
       } else {
-        // Если переподключаемся в состоянии Лобби
         room.players.forEach(p => {
           io.to(p.socketId).emit('room_state_update', {
             roomCode: room.roomCode,
@@ -214,7 +212,6 @@ io.on('connection', (socket) => {
     const room = rooms.get(roomCode);
     if (!room) return;
 
-    // Сброс таймера переключения хода, так как игрок задал новый вопрос
     if (room.turnTimeout) {
       clearTimeout(room.turnTimeout);
       room.turnTimeout = null;
@@ -287,12 +284,10 @@ io.on('connection', (socket) => {
       });
 
       if (isYes || isTie) {
-        // При ДА или НИЧЬЕЙ ход остается у текущего игрока
         room.currentQuestion = null;
         room.votes = { yes: 0, no: 0 };
         room.votedPlayers = [];
       } else {
-        // При НЕТ запускаем безопасный таймер передачи хода
         if (room.turnTimeout) clearTimeout(room.turnTimeout);
 
         room.turnTimeout = setTimeout(() => {
@@ -425,7 +420,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Передача эмодзи-реакций (спам!)
   socket.on('send_reaction', (data) => {
     const { roomCode, emoji } = data;
     const room = rooms.get(roomCode);
@@ -440,6 +434,55 @@ io.on('connection', (socket) => {
     });
   });
 
+  // СЕТЕВОЕ РИСОВАНИЕ: Передача координат линии всем игрокам
+  socket.on('draw_line', (data) => {
+    const { roomCode, x1, y1, x2, y2, color } = data;
+    // Транслируем линию всем остальным в комнате
+    socket.broadcast.to(roomCode).emit('broadcast_line', {
+      x1, y1, x2, y2, color
+    });
+  });
+
+  // СЕТЕВОЕ ОЧИЩЕНИЕ РИСУНКОВ
+  socket.on('clear_drawings', (data) => {
+    const { roomCode } = data;
+    io.to(roomCode).emit('broadcast_clear_drawings');
+  });
+
+  // БЕСШОВНЫЙ ПЕРЕЗАПУСК ИГРЫ (Очистка состояния комнаты и возврат в Лобби)
+  socket.on('restart_game', (data) => {
+    const { roomCode } = data;
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+    // Сброс комнаты в дефолтное лобби
+    room.status = 'LOBBY';
+    if (room.turnTimeout) clearTimeout(room.turnTimeout);
+    room.turnTimeout = null;
+    room.currentQuestion = null;
+    room.votes = { yes: 0, no: 0 };
+    room.votedPlayers = [];
+    room.activePlayerIndex = 0;
+
+    // Сброс игроков
+    room.players.forEach(p => {
+      p.character = null;
+      p.hasGuessed = false;
+      p.questionsCount = 0;
+      p.history = [];
+    });
+
+    // Возвращаем абсолютно всех игроков в комнате на экран Лобби
+    room.players.forEach(p => {
+      io.to(p.socketId).emit('room_state_update', {
+        roomCode: room.roomCode,
+        status: room.status,
+        players: getMaskedPlayersFor(room, p.socketId)
+      });
+    });
+    console.log(`Игра в комнате ${roomCode} успешно сброшена в Лобби.`);
+  });
+
   socket.on('disconnect', () => {
     console.log(`Игрок отключился: ${socket.id}`);
     for (const [roomCode, room] of rooms.entries()) {
@@ -447,9 +490,8 @@ io.on('connection', (socket) => {
       if (playerIndex !== -1) {
         const leftPlayer = room.players[playerIndex];
         
-        // В процессе активного матча НЕ удаляем профиль игрока из памяти для авто-реконнекта!
-        if (room.status === 'PLAYING') {
-          console.log(`Игрок ${leftPlayer.name} временно отключился от активного матча.`);
+        if (room.status === 'PLAYING' || room.status === 'RESULTS') {
+          console.log(`Игрок ${leftPlayer.name} временно отключился.`);
           return; 
         }
 

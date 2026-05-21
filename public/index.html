@@ -4,13 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Без Понятия!</title>
-  <!-- Подключение Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Подключение клиентской библиотеки Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
-  <!-- Подключение Howler.js для звуков -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
-  <!-- Подключение шрифтов -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   
   <style>
@@ -62,7 +58,7 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 selection:bg-pink-500 selection:text-white relative overflow-x-hidden">
 
-  <!-- ПОЛНОЭКРАННАЯ РИСОВАЛКА НА ПОЛЯХ СТРАНИЦЫ -->
+  <!-- ПОЛНОЭКРАННАЯ ОБЩАЯ РИСОВАЛКА НА ПОЛЯХ СТРАНИЦЫ -->
   <canvas id="bg-drawing-canvas" class="fixed inset-0 z-0 cursor-crosshair"></canvas>
 
   <!-- Кнопка очистки полноэкранного рисунка -->
@@ -70,8 +66,8 @@
     🧹 Стереть пометки
   </button>
 
-  <!-- СОВРЕМЕННЫЙ НЕБЛОКИРУЮЩИЙ ТОСТ ДЛЯ УВЕДОМЛЕНИЙ -->
-  <div id="game-toast" class="fixed top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-black border-4 border-black px-6 py-3 rounded-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 transform scale-0 transition-all duration-300">
+  <!-- УВЕДОМЛЕНИЯ (ТОСТЫ) -->
+  <div id="game-toast" class="fixed top-4 left-1/2 -translate-x-1/2 bg-green-400 text-black border-4 border-black px-6 py-3 rounded-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 transform scale-0 transition-all duration-300">
     <span id="game-toast-text">Сообщение</span>
   </div>
 
@@ -79,7 +75,7 @@
   <div id="reaction-container" class="absolute inset-0 pointer-events-none overflow-hidden z-40"></div>
 
   <!-- ============================================== -->
-  <!-- ЭКРАН 1: ГЛАВНЫЙ ЭКРАН (ВХОД)                  -->
+  <!-- ЭКРАН 1: ГЛАВНЫЙ ЭКРАН                         -->
   <!-- ============================================== -->
   <main id="screen-welcome" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative z-10 transition-all duration-300 transform opacity-100 scale-100">
     <header class="text-center mb-4 relative z-10">
@@ -201,7 +197,6 @@
 
     <!-- Боковая панель быстрых реакций для отвечающих -->
     <div id="reaction-panel" class="absolute -left-12 top-1/2 -translate-y-1/2 flex flex-col gap-3 bg-indigo-950/80 p-2 rounded-2xl border-4 border-black z-30 hidden transition-all">
-      <!-- Добавлена большая спам-реакция ГО! -->
       <button onclick="sendReaction('ГО!')" class="hover:scale-125 transition-transform text-lg font-black bg-yellow-400 text-black border-2 border-black rounded-lg px-1.5 py-0.5">ГО!</button>
       <button onclick="sendReaction('😂')" class="hover:scale-125 transition-transform text-2xl">😂</button>
       <button onclick="sendReaction('💩')" class="hover:scale-125 transition-transform text-2xl">💩</button>
@@ -258,7 +253,7 @@
     <!-- БЛОК Б: Роль ОТГАДЫВАЮЩЕГО -->
     <section id="game-guesser-zone" class="space-y-6 hidden">
       
-      <!-- Ожидание решения зала c крупным крутящимся маскотом -->
+      <!-- Ожидание решения зала -->
       <div id="guess-waiting-block" class="bg-indigo-950/80 p-6 rounded-2xl border-4 border-black text-center hidden transform rotate-[-0.5deg] space-y-6">
         <div class="flex justify-center relative">
           <div class="absolute w-28 h-28 bg-indigo-900/50 rounded-full border-4 border-dashed border-indigo-800/60 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
@@ -299,13 +294,13 @@
       </div>
     </section>
 
-    <!-- ДВЕ РАЗДЕЛЬНЫЕ ИСТОРИИ ВОПРОСОВ (Переработана верстка!) -->
+    <!-- ДВЕ РАЗДЕЛЬНЫЕ ИСТОРИИ ВОПРОСОВ -->
     <section class="mt-6 border-t-4 border-black/40 pt-4 space-y-4">
       
-      <!-- 1. Моя персональная история (Видна ВСЕГДА, кроме момента когда идет твой собственный ход, чтобы не дублировать) -->
+      <!-- 1. Моя персональная история (Видна ВСЕГДА) -->
       <div id="my-personal-history-block">
         <h3 class="text-xs font-black uppercase text-pink-500 tracking-wider mb-2">Моя личная история вопросов:</h3>
-        <div id="my-personal-history-log" class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-2 max-h-36 overflow-y-auto hidden">
+        <div id="my-personal-history-log" class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-2 max-h-48 overflow-y-auto hidden">
           <!-- Заполняется JS -->
         </div>
       </div>
@@ -313,7 +308,7 @@
       <!-- 2. Активная история вопросов текущего угадывающего -->
       <div id="game-history-block">
         <h3 id="game-history-title" class="text-xs font-black uppercase text-yellow-300 tracking-wider mb-2">История его вопросов:</h3>
-        <div id="game-history-log" class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-2 max-h-36 overflow-y-auto hidden">
+        <div id="game-history-log" class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-2 max-h-48 overflow-y-auto hidden">
           <!-- Заполняется JS -->
         </div>
       </div>
@@ -327,7 +322,7 @@
   <!-- ============================================== -->
   <main id="screen-results" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden transition-all duration-300 transform opacity-0 scale-95 z-10">
     
-    <!-- Крупный ДИНАМИЧЕСКИЙ маскот (радостный или грустный) -->
+    <!-- Крупный ДИНАМИЧЕСКИЙ маскот -->
     <div class="flex justify-center mb-6 relative">
       <div class="absolute w-36 h-36 bg-indigo-950/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="w-32 h-32 relative z-10 animate-winner">
@@ -356,18 +351,10 @@
   </main>
 
   <script>
-    // Инициализация базы данных персонажей (на самом верху скрипта)
-    const famousCharacters = [
-      'Губка Боб', 'Шрек', 'Пикачу', 'Наруто', 'Миньон', 'Гомер Симпсон', 'Эльза',
-      'Дональд Трамп', 'Илон Маск', 'Майкл Джексон', 'Альберт Эйнштейн', 'Хасбик', 'Терминатор',
-      'Человек-Паук', 'Гарри Поттер', 'Дарт Вейдер', 'Капитан Джек Воробей', 'Шерлок Холмс', 'Бэтмен', 'Танос',
-      'Санта Клаус', 'Мона Лиза', 'Граф Дракула', 'Баба Яга', 'Агент 007'
-    ];
-
     const socket = io();
 
     // ==============================================
-    // ЗВУКОВОЙ ДВИЖОК (Браузерный Audio API — обходит любые CORS блокировки)
+    // ЗВУКОВОЙ ДВИЖОК (Браузерный Audio API)
     // ==============================================
     const sfx = {
       click: new Audio('https://www.soundjay.com/buttons/sounds/button-16.mp3'),
@@ -377,8 +364,8 @@
 
     function playSound(sound) {
       if (sfx[sound]) {
-        sfx[sound].currentTime = 0; // Сбрасываем в начало для повторного клика
-        sfx[sound].play().catch(e => console.log("Браузер заблокировал автовоспроизведение до первого клика:", e));
+        sfx[sound].currentTime = 0;
+        sfx[sound].play().catch(e => console.log("Браузер заблокировал автовоспроизведение:", e));
       }
     }
 
@@ -479,21 +466,17 @@
       const currentScreen = screens.find(s => !s.classList.contains('hidden'));
       
       if (currentScreen && currentScreen !== targetScreen) {
-        // Затухание текущего
         currentScreen.classList.add('opacity-0', 'scale-95');
         currentScreen.classList.remove('opacity-100', 'scale-100');
         
         setTimeout(() => {
           currentScreen.classList.add('hidden');
-          
-          // Появление нового
           targetScreen.classList.remove('hidden');
-          targetScreen.offsetHeight; // Триггер перерисовки
+          targetScreen.offsetHeight; 
           targetScreen.classList.add('opacity-100', 'scale-100');
           targetScreen.classList.remove('opacity-0', 'scale-95');
         }, 300);
       } else {
-        // Самый первый запуск (без анимации затухания)
         targetScreen.classList.remove('hidden');
         targetScreen.classList.add('opacity-100', 'scale-100');
         targetScreen.classList.remove('opacity-0', 'scale-95');
@@ -513,7 +496,7 @@
       const name = usernameInput.value.trim();
       if (!name) return showToast('Имя введи!', 3000, false);
       myName = name;
-      sessionStorage.setItem('username', name); // Сохраняем имя для автореконнекта
+      sessionStorage.setItem('username', name); 
       socket.emit('create_room', { username: name });
     });
 
@@ -524,8 +507,8 @@
       const code = roomCodeInput.value.trim();
       if (!name || code.length < 4) return showToast('Заполни поля имени и кода комнаты!', 3000, false);
       myName = name;
-      sessionStorage.setItem('username', name); // Сохраняем имя для автореконнекта
-      sessionStorage.setItem('roomCode', code);   // Сохраняем код для автореконнекта
+      sessionStorage.setItem('username', name); 
+      sessionStorage.setItem('roomCode', code);   
       socket.emit('join_room', { username: name, roomCode: code });
     });
 
@@ -598,15 +581,23 @@
     }
     window.sendReaction = sendReaction;
 
-    // ВЫХОД И ПЕРЕЗАПУСК
-    btnLeave.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
-    btnRestart.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
+    // КЛИК: Еще разок (БЕСШОВНЫЙ СБРОС ИГРЫ!)
+    btnRestart.addEventListener('click', () => {
+      playSound('click');
+      // Очищаем локальные рисунки у себя перед рестартом
+      clearBgCanvas();
+      // Отправляем сигнал серверу сбросить комнату в Лобби
+      socket.emit('restart_game', { roomCode: currentRoomCode });
+    });
+
+    // КЛИК: Выход в главное меню
     btnMainMenu.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
+    btnLeave.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
 
     // СОКЕТЫ: РЕГИСТРАЦИЯ
     socket.on('room_created', (data) => {
       currentRoomCode = data.roomCode;
-      sessionStorage.setItem('roomCode', currentRoomCode); // Сохраняем для реконнекта
+      sessionStorage.setItem('roomCode', currentRoomCode); 
       isHost = true;
       lobbyCodeDisplay.textContent = currentRoomCode;
       showScreen(screenLobby);
@@ -647,15 +638,15 @@
         document.getElementById('btn-ask').disabled = false;
         document.getElementById('btn-guess-attempt').disabled = false;
 
-        // Отрисовка раздельных историй
+        // Личная история игрока
         renderHistory(data.myPersonalHistory, myPersonalHistoryLog);
         renderHistory(data.activePlayerHistory, gameHistoryLog);
 
         if (socket.id === activePlayerId) {
           // МЫ УГАДЫВАЕМ
           gameHistoryTitle.textContent = "История твоих вопросов:";
-          reactionPanel.classList.add('hidden'); // Скрываем эмодзи
-          myPersonalHistoryBlock.classList.add('hidden'); // Скрываем блок "Моя история" (чтобы не дублировать)
+          reactionPanel.classList.add('hidden'); 
+          myPersonalHistoryBlock.classList.add('hidden'); 
 
           gameAnswererZone.classList.add('hidden');
           gameGuesserZone.classList.remove('hidden');
@@ -664,8 +655,8 @@
         } else {
           // МЫ ОТВЕЧАЕМ
           gameHistoryTitle.textContent = "История его вопросов:";
-          reactionPanel.classList.remove('hidden'); // Включаем реакции
-          myPersonalHistoryBlock.classList.remove('hidden'); // Показываем нашу личную историю в углу!
+          reactionPanel.classList.remove('hidden'); 
+          myPersonalHistoryBlock.classList.remove('hidden'); 
 
           gameAnswererZone.classList.remove('hidden');
           gameGuesserZone.classList.add('hidden');
@@ -692,7 +683,7 @@
       lastAskedQuestion = data.question;
 
       if (socket.id !== activePlayerId) {
-        // Мы отвечаем: Показываем вопрос и открываем ДА/НЕТ
+        // Мы отвечаем: Показываем вопрос и открываем кнопки ДА/НЕТ
         gameQuestionText.textContent = `«${data.question}»`;
         votingButtonsGrid.classList.remove('hidden');
         
@@ -727,10 +718,8 @@
     socket.on('voting_complete', (data) => {
       const { isYes, isTie, votes, activePlayerHistory } = data;
       
-      // Перерисовываем историю ходящего
       renderHistory(activePlayerHistory, gameHistoryLog);
 
-      // Если мы сами угадываем, обновляем и нашу личную историю!
       if (socket.id === activePlayerId) {
         renderHistory(activePlayerHistory, myPersonalHistoryLog);
       }
@@ -806,11 +795,11 @@
       el.className = 'floating-emoji bg-indigo-950/90 text-white border-2 border-black px-3 py-1.5 rounded-full font-black text-sm flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]';
       el.innerHTML = `<span>${senderName}:</span> <span class="text-2xl">${emoji}</span>`;
 
-      const randomX = Math.floor(Math.random() * 60) + 10; // от 10% до 70% ширины
+      const randomX = Math.floor(Math.random() * 60) + 10; 
       el.style.left = `${randomX}%`;
 
       container.appendChild(el);
-      playSound('click'); // Воспроизводим звук клика при вылете
+      playSound('click'); 
 
       setTimeout(() => { el.remove(); }, 2500);
     });
@@ -842,6 +831,22 @@
 
       logElement.scrollTop = logElement.scrollHeight;
     }
+
+    // СОКЕТЫ ДЛЯ СЕТЕВОГО РИСОВАНИЯ
+    socket.on('broadcast_line', (data) => {
+      // Переводим проценты обратно в пиксели нашего холста
+      const x1 = data.x1 * bgCanvas.width;
+      const y1 = data.y1 * bgCanvas.height;
+      const x2 = data.x2 * bgCanvas.width;
+      const y2 = data.y2 * bgCanvas.height;
+      
+      drawSegment(x1, y1, x2, y2, data.color);
+    });
+
+    socket.on('broadcast_clear_drawings', () => {
+      bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+      playSound('incorrect'); // Смешной шуршащий звук очистки
+    });
 
     // СОКЕТ: Результат попытки угадать
     socket.on('guess_result', (data) => {
@@ -967,19 +972,19 @@
     }
 
     // ==============================================
-    // ПОЛНОЭКРАННАЯ РИСОВАЛКА НА CANVAS (НА ПОЛЯХ СТРАНИЦЫ)
+    // КООПЕРАТИВНАЯ ПОЛНОЭКРАННАЯ РИСОВАЛКА НА CANVAS
     // ==============================================
     const bgCanvas = document.getElementById('bg-drawing-canvas');
     const bgCtx = bgCanvas.getContext('2d');
     let isDrawingBg = false;
+    let lastX = 0;
+    let lastY = 0;
 
     // Палитра сочных неоновых цветов для кисти
     const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849'];
     const myBrushColor = playerColors[Math.floor(Math.random() * playerColors.length)];
 
-    // Подстройка размера холста под размеры экрана при старте и ресайзе
     function resizeCanvas() {
-      // Сохраняем временный рисунок при ресайзе
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = bgCanvas.width;
       tempCanvas.height = bgCanvas.height;
@@ -989,7 +994,6 @@
       bgCanvas.width = window.innerWidth;
       bgCanvas.height = window.innerHeight;
 
-      // Возвращаем рисунок обратно
       bgCtx.drawImage(tempCanvas, 0, 0);
       setupBrush();
     }
@@ -1011,38 +1015,66 @@
     }
 
     function startDrawBg(e) {
-      // Разрешаем рисовать только на самом фоне (если кликнули мимо карточки игры)
       if (e.target !== bgCanvas) return;
       isDrawingBg = true;
       const coords = getBgCoords(e);
-      bgCtx.beginPath();
-      bgCtx.moveTo(coords.x, coords.y);
+      lastX = coords.x;
+      lastY = coords.y;
     }
 
     function drawBg(e) {
       if (!isDrawingBg) return;
       const coords = getBgCoords(e);
-      bgCtx.lineTo(coords.x, coords.y);
-      bgCtx.stroke();
+
+      // Локальная отрисовка сегмента линии
+      drawSegment(lastX, lastY, coords.x, coords.y, myBrushColor);
+
+      // Отправка координат сегмента на сервер в виде процентов!
+      if (currentRoomCode) {
+        socket.emit('draw_line', {
+          roomCode: currentRoomCode,
+          x1: lastX / bgCanvas.width,
+          y1: lastY / bgCanvas.height,
+          x2: coords.x / bgCanvas.width,
+          y2: coords.y / bgCanvas.height,
+          color: myBrushColor
+        });
+      }
+
+      lastX = coords.x;
+      lastY = coords.y;
     }
 
     function stopDrawBg() {
       isDrawingBg = false;
+    }
+
+    // Универсальная функция отрисовки линии
+    function drawSegment(x1, y1, x2, y2, color) {
+      bgCtx.strokeStyle = color;
+      bgCtx.lineWidth = 5;
+      bgCtx.lineCap = 'round';
+      bgCtx.lineJoin = 'round';
+      bgCtx.beginPath();
+      bgCtx.moveTo(x1, y1);
+      bgCtx.lineTo(x2, y2);
+      bgCtx.stroke();
       bgCtx.closePath();
     }
 
-    // Слушатели для мыши
     bgCanvas.addEventListener('mousedown', startDrawBg);
     window.addEventListener('mousemove', drawBg);
     window.addEventListener('mouseup', stopDrawBg);
 
-    // Слушатели для тачскрина мобилок
     bgCanvas.addEventListener('touchstart', startDrawBg);
     window.addEventListener('touchmove', drawBg);
     window.addEventListener('touchend', stopDrawBg);
 
+    // СЕТЕВОЕ ОЧИЩЕНИЕ (Стирает у всех)
     function clearBgCanvas() {
-      bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+      if (currentRoomCode) {
+        socket.emit('clear_drawings', { roomCode: currentRoomCode });
+      }
     }
     window.clearBgCanvas = clearBgCanvas;
 
