@@ -4,13 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Без Понятия!</title>
-  <!-- Подключение Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Подключение клиентской библиотеки Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
-  <!-- Подключение Howler.js для звуков -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
-  <!-- Подключение шрифтов -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   
   <style>
@@ -45,34 +41,33 @@
     .animate-winner {
       animation: celebrate 2s ease-in-out infinite;
     }
-    /* Стили для летающих эмодзи-реакций */
+    /* Стили для летающих реакций */
     .floating-emoji {
       position: absolute;
       bottom: 20px;
-      font-size: 3rem;
       pointer-events: none;
       z-index: 100;
       animation: floatUp 2.5s ease-out forwards;
     }
     @keyframes floatUp {
       0% { transform: translateY(0) scale(0.5); opacity: 0; }
-      15% { opacity: 1; transform: translateY(-40px) scale(1.2); }
-      100% { transform: translateY(-350px) scale(0.8); opacity: 0; }
+      15% { opacity: 1; transform: translateY(-40px) scale(1.1); }
+      100% { transform: translateY(-380px) scale(0.7); opacity: 0; }
     }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 selection:bg-pink-500 selection:text-white relative overflow-x-hidden">
 
-  <!-- СОВРЕМЕННЫЙ НЕБЛОКИРУЮЩИЙ ТОСТ ДЛЯ УВЕДОМЛЕНИЙ -->
+  <!-- УВЕДОМЛЕНИЯ (ТОСТЫ) -->
   <div id="game-toast" class="fixed top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-black border-4 border-black px-6 py-3 rounded-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 transform scale-0 transition-all duration-300">
     <span id="game-toast-text">Сообщение</span>
   </div>
 
-  <!-- КАРКАС ДЛЯ ЛЕТАЮЩИХ ЭМОДЗИ РЕАКЦИЙ -->
-  <div id="reaction-container" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+  <!-- КОНТЕЙНЕР ДЛЯ РЕАКЦИЙ -->
+  <div id="reaction-container" class="absolute inset-0 pointer-events-none overflow-hidden z-40"></div>
 
   <!-- ============================================== -->
-  <!-- ЭКРАН 1: ГЛАВНЫЙ ЭКРАН (ВХОД)                  -->
+  <!-- ЭКРАН 1: ГЛАВНЫЙ ЭКРАН                         -->
   <!-- ============================================== -->
   <main id="screen-welcome" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative transition-all duration-300 transform opacity-100 scale-100">
     <header class="text-center mb-4 relative z-10">
@@ -117,7 +112,7 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 2: ЛОББИ (ОЖИДАНИЕ)                      -->
   <!-- ============================================== -->
-  <main id="screen-lobby" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden transition-all duration-300 transform opacity-0 scale-95">
+  <main id="screen-lobby" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden transition-all duration-300 transform opacity-0 scale-95 animate-fade-in">
     <header class="text-center mb-6">
       <span class="text-xs font-black uppercase tracking-widest text-indigo-300">Код твоей комнаты:</span>
       <div id="lobby-code-display" class="mt-1 inline-block bg-cyan-400 text-black border-4 border-black px-6 py-2 rounded-2xl font-title text-4xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[-1.5deg]">----</div>
@@ -149,7 +144,7 @@
   </main>
 
   <!-- ============================================== -->
-  <!-- ЭКРАН 3: ЗАГАДЫВАНИЕ (ВВОД СЛОВ)               -->
+  <!-- ЭКРАН 3: ЗАГАДЫВАНИЕ                           -->
   <!-- ============================================== -->
   <main id="screen-input" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative overflow-hidden hidden transition-all duration-300 transform opacity-0 scale-95">
     <div class="absolute top-0 left-0 w-full h-3 bg-black/40"><div id="timer-bar" class="h-full bg-pink-500 transition-all duration-1000 ease-linear" style="width: 100%;"></div></div>
@@ -162,7 +157,7 @@
     <div class="flex justify-center mb-6 relative">
       <div class="absolute w-28 h-28 bg-indigo-950/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="w-28 h-28 relative z-10 animate-wiggle">
-        <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот размышления">
+        <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот">
       </div>
     </div>
 
@@ -192,12 +187,12 @@
   <!-- ============================================== -->
   <main id="screen-game" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden transition-all duration-300 transform opacity-0 scale-95">
 
-    <!-- Панель быстрых эмодзи-реакций сбоку (для отвечающих) -->
-    <div id="reaction-panel" class="absolute -left-12 top-1/2 -translate-y-1/2 flex flex-col gap-3 bg-indigo-950/80 p-2.5 rounded-2xl border-4 border-black z-30 hidden transition-all">
+    <!-- Боковая панель быстрых реакций для отвечающих -->
+    <div id="reaction-panel" class="absolute -left-12 top-1/2 -translate-y-1/2 flex flex-col gap-3 bg-indigo-950/80 p-2 rounded-2xl border-4 border-black z-30 hidden transition-all">
       <button onclick="sendReaction('😂')" class="hover:scale-125 transition-transform text-2xl">😂</button>
       <button onclick="sendReaction('💩')" class="hover:scale-125 transition-transform text-2xl">💩</button>
       <button onclick="sendReaction('🎉')" class="hover:scale-125 transition-transform text-2xl">🎉</button>
-      <button onclick="sendVoteReaction('😱')" class="hover:scale-125 transition-transform text-2xl">😱</button>
+      <button onclick="sendReaction('😱')" class="hover:scale-125 transition-transform text-2xl">😱</button>
     </div>
 
     <!-- Имя того, кто угадывает -->
@@ -209,7 +204,7 @@
     <!-- БЛОК А: Роль ОТВЕЧАЮЩЕГО -->
     <section id="game-answerer-zone" class="space-y-6 hidden">
       
-      <!-- Проверка догадки игрока -->
+      <!-- Модалка проверки догадки игрока -->
       <div id="guess-verification-block" class="bg-yellow-400 text-black border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1deg] hidden space-y-4 font-black">
         <h3 class="font-title text-lg font-black uppercase text-center">Проверка догадки!</h3>
         <p class="text-sm font-bold text-center">
@@ -244,23 +239,28 @@
       <div id="vote-progress-status" class="text-center text-xs font-bold text-indigo-300 hidden">
         Проголосовало: <span id="voted-count-display">0</span>/<span id="voters-total-display">0</span>
       </div>
+
+      <!-- ЛОКАЛЬНАЯ РИСОВАЛКА НА ЭКРАНЕ ОЖИДАНИЯ (Убивалка времени для отвечающих) -->
+      <div class="border-t-4 border-black/30 pt-4 text-center">
+        <p class="text-xs font-black uppercase text-yellow-300 tracking-wider mb-2">Скучаешь? Порисуй тут пальцем:</p>
+        <canvas id="drawing-canvas" width="300" height="150" class="mx-auto bg-indigo-950 border-4 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] cursor-crosshair"></canvas>
+        <button onclick="clearCanvas()" class="text-[10px] font-black uppercase tracking-wider text-pink-400 hover:text-white mt-1.5 transition-colors">🧹 Стереть художество</button>
+      </div>
     </section>
 
     <!-- БЛОК Б: Роль ОТГАДЫВАЮЩЕГО -->
     <section id="game-guesser-zone" class="space-y-6 hidden">
       
-      <!-- Ожидание решения зала -->
-      <div id="guess-waiting-block" class="bg-indigo-950/80 p-6 rounded-2xl border-4 border-black text-center hidden transform rotate-[-0.5deg] space-y-6">
+      <!-- Экран ожидания проверки зала -->
+      <div id="guess-waiting-block" class="bg-indigo-950/80 p-6 rounded-2xl border-4 border-black text-center hidden transform rotate-[-0.5deg] space-y-4">
         <div class="flex justify-center relative">
           <div class="absolute w-28 h-28 bg-indigo-900/50 rounded-full border-4 border-dashed border-indigo-800/60 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
           <div class="w-28 h-28 relative z-10 animate-wiggle">
             <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот ожидания">
           </div>
         </div>
-        <div class="space-y-1">
-          <p class="text-xs font-black uppercase text-pink-500 animate-pulse">Твоя догадка отправлена на проверку!</p>
-          <p class="font-black text-sm text-white">Остальные игроки решают, засчитать ли твой ответ...</p>
-        </div>
+        <p class="text-xs font-black uppercase text-pink-500 animate-pulse">Твоя догадка отправлена на проверку!</p>
+        <p class="font-black text-sm text-white mt-1">Остальные игроки решают, засчитать ли твой ответ...</p>
       </div>
 
       <div class="text-center">
@@ -290,22 +290,22 @@
       </div>
     </section>
 
-    <!-- ДВЕ ИСТОРИИ: 1. МОЯ ЛИЧНАЯ (Всегда на экране), 2. ХОДЯЩЕГО (Динамическая) -->
+    <!-- ДВЕ РАЗДЕЛЬНЫЕ ИСТОРИИ ВОПРОСОВ (Переработана верстка!) -->
     <section class="mt-6 border-t-4 border-black/40 pt-4 space-y-4">
       
-      <!-- Моя персональная история (всегда видна, чтобы игрок мог думать не в свой ход) -->
-      <div>
-        <h3 class="text-xs font-black uppercase text-pink-500 tracking-wider mb-1.5">Моя личная история:</h3>
-        <div id="my-personal-history-log" class="bg-indigo-950/40 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-1 max-h-36 overflow-y-auto hidden">
-          <!-- Наполняется JS -->
+      <!-- 1. Моя персональная история (Видна ВСЕГДА, кроме момента когда идет твой собственный ход, чтобы не дублировать) -->
+      <div id="my-personal-history-block">
+        <h3 class="text-xs font-black uppercase text-pink-500 tracking-wider mb-2">Моя личная история вопросов:</h3>
+        <div id="my-personal-history-log" class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-2 max-h-36 overflow-y-auto hidden">
+          <!-- Заполняется JS -->
         </div>
       </div>
 
-      <!-- Активная история текущего хода -->
-      <div>
-        <h3 id="game-history-title" class="text-xs font-black uppercase text-yellow-300 tracking-wider mb-1.5">История его вопросов:</h3>
-        <div id="game-history-log" class="bg-indigo-950/40 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-1 max-h-36 overflow-y-auto hidden">
-          <!-- Наполняется JS -->
+      <!-- 2. Активная история вопросов текущего угадывающего -->
+      <div id="game-history-block">
+        <h3 id="game-history-title" class="text-xs font-black uppercase text-yellow-300 tracking-wider mb-2">История его вопросов:</h3>
+        <div id="game-history-log" class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-2 max-h-36 overflow-y-auto hidden">
+          <!-- Заполняется JS -->
         </div>
       </div>
 
@@ -318,7 +318,7 @@
   <!-- ============================================== -->
   <main id="screen-results" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden transition-all duration-300 transform opacity-0 scale-95">
     
-    <!-- Крупный ДИНАМИЧЕСКИЙ маскот (радостный или грустный) -->
+    <!-- Крупный динамический маскот на результатах -->
     <div class="flex justify-center mb-6 relative">
       <div class="absolute w-36 h-36 bg-indigo-950/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="w-32 h-32 relative z-10 animate-winner">
@@ -347,18 +347,10 @@
   </main>
 
   <script>
-    // Инициализация базы данных персонажей (на самом верху скрипта)
-    const famousCharacters = [
-      'Губка Боб', 'Шрек', 'Пикачу', 'Наруто', 'Миньон', 'Гомер Симпсон', 'Эльза',
-      'Дональд Трамп', 'Илон Маск', 'Майкл Джексон', 'Альберт Эйнштейн', 'Хасбик', 'Терминатор',
-      'Человек-Паук', 'Гарри Поттер', 'Дарт Вейдер', 'Капитан Джек Воробей', 'Шерлок Холмс', 'Бэтмен', 'Танос',
-      'Санта Клаус', 'Мона Лиза', 'Граф Дракула', 'Баба Яга', 'Агент 007'
-    ];
-
     const socket = io();
 
     // ==============================================
-    // ЗВУКОВОЙ ДВИЖОК (Браузерный Audio API — обходит любые CORS блокировки)
+    // АБСОЛЮТНО СТАБИЛЬНЫЙ ЗВУКОВОЙ ДВИЖОК
     // ==============================================
     const sfx = {
       click: new Audio('https://www.soundjay.com/buttons/sounds/button-16.mp3'),
@@ -368,13 +360,13 @@
 
     function playSound(sound) {
       if (sfx[sound]) {
-        sfx[sound].currentTime = 0; // Сбрасываем в начало для повторного клика
-        sfx[sound].play().catch(e => console.log("Браузер заблокировал автовоспроизведение до первого клика:", e));
+        sfx[sound].currentTime = 0;
+        sfx[sound].play().catch(e => console.log("Интерактивный звук заблокирован политикой браузера до первого клика:", e));
       }
     }
 
     // ==============================================
-    // НЕБЛОКИРУЮЩЕЕ ПЛАВНОЕ УВЕДОМЛЕНИЕ (ТОСТ)
+    // СИСТЕМА НЕБЛОКИРУЮЩИХ ПЛАВНЫХ УВЕДОМЛЕНИЙ (ТОСТЫ)
     // ==============================================
     function showToast(text, duration = 3000, isSuccess = true) {
       const toast = document.getElementById('game-toast');
@@ -391,6 +383,18 @@
         toast.className = "fixed top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-black border-4 border-black px-6 py-3 rounded-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 transform scale-0 transition-all duration-300";
       }, duration);
     }
+
+    // ==============================================
+    // АВТО-ВОССТАНОВЛЕНИЕ СЕССИИ (РЕКОННЕКТ ПРИ ВЫЛЕТАХ)
+    // ==============================================
+    socket.on('connect', () => {
+      const savedName = sessionStorage.getItem('username');
+      const savedRoom = sessionStorage.getItem('roomCode');
+      if (savedName && savedRoom) {
+        console.log("Попытка восстановить игровую сессию для:", savedName);
+        socket.emit('join_room', { username: savedName, roomCode: savedRoom });
+      }
+    });
 
     let currentRoomCode = '';
     let myName = '';
@@ -443,6 +447,7 @@
     const votingButtonsGrid = document.getElementById('voting-buttons-grid');
     const gameHistoryLog = document.getElementById('game-history-log');
     const myPersonalHistoryLog = document.getElementById('my-personal-history-log');
+    const myPersonalHistoryBlock = document.getElementById('my-personal-history-block');
     const gameHistoryTitle = document.getElementById('game-history-title');
     const reactionPanel = document.getElementById('reaction-panel');
 
@@ -451,34 +456,30 @@
     const btnRestart = document.getElementById('btn-restart');
     const btnMainMenu = document.getElementById('btn-main-menu');
 
-    // ПЛАВНЫЕ ПЕРЕХОДЫ МЕЖДУ ЭКРАНАМИ (По джекбоксу)
+    // ПЛАВНЫЕ ПЕРЕХОДЫ МЕЖДУ ЭКРАНАМИ (Транзишны)
     function showScreen(targetScreen) {
       const screens = [screenWelcome, screenLobby, screenInput, screenGame, screenResults];
       const currentScreen = screens.find(s => !s.classList.contains('hidden'));
       
       if (currentScreen && currentScreen !== targetScreen) {
-        // Затухание текущего
         currentScreen.classList.add('opacity-0', 'scale-95');
         currentScreen.classList.remove('opacity-100', 'scale-100');
         
         setTimeout(() => {
           currentScreen.classList.add('hidden');
-          
-          // Появление нового
           targetScreen.classList.remove('hidden');
-          targetScreen.offsetHeight; // Триггер перерисовки
+          targetScreen.offsetHeight; 
           targetScreen.classList.add('opacity-100', 'scale-100');
           targetScreen.classList.remove('opacity-0', 'scale-95');
         }, 300);
       } else {
-        // Самый первый запуск (без анимации затухания)
         targetScreen.classList.remove('hidden');
         targetScreen.classList.add('opacity-100', 'scale-100');
         targetScreen.classList.remove('opacity-0', 'scale-95');
       }
     }
 
-    // Поддержка нажатия кнопки Enter на отправку вопроса
+    // Отправка вопроса по клавише Enter
     document.getElementById('question-input').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         document.getElementById('btn-ask').click();
@@ -491,6 +492,7 @@
       const name = usernameInput.value.trim();
       if (!name) return showToast('Имя введи!', 3000, false);
       myName = name;
+      sessionStorage.setItem('username', name); // Сохраняем имя для автореконнекта
       socket.emit('create_room', { username: name });
     });
 
@@ -501,10 +503,12 @@
       const code = roomCodeInput.value.trim();
       if (!name || code.length < 4) return showToast('Заполни поля имени и кода комнаты!', 3000, false);
       myName = name;
+      sessionStorage.setItem('username', name); // Сохраняем имя для автореконнекта
+      sessionStorage.setItem('roomCode', code);   // Сохраняем код для автореконнекта
       socket.emit('join_room', { username: name, roomCode: code });
     });
 
-    // КЛИК: Старт (только Хост)
+    // КЛИК: Старт
     btnStart.addEventListener('click', () => {
       playSound('click');
       socket.emit('start_game', { roomCode: currentRoomCode });
@@ -564,7 +568,7 @@
     }
     window.submitGuessVerdict = submitGuessVerdict;
 
-    // ОТПРАВИТЬ ЭМОДЗИ-РЕАКЦИЮ НА ЭКРАН
+    // ОТПРАВИТЬ ЭМОДЗИ-РЕАКЦИЮ НА ЭКРАН (СПАМ!)
     function sendReaction(emoji) {
       playSound('click');
       if (currentRoomCode) {
@@ -574,13 +578,14 @@
     window.sendReaction = sendReaction;
 
     // ВЫХОД И ПЕРЕЗАПУСК
-    btnLeave.addEventListener('click', () => { playSound('click'); location.reload(); });
-    btnRestart.addEventListener('click', () => { playSound('click'); location.reload(); });
-    btnMainMenu.addEventListener('click', () => { playSound('click'); location.reload(); });
+    btnLeave.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
+    btnRestart.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
+    btnMainMenu.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
 
     // СОКЕТЫ: РЕГИСТРАЦИЯ
     socket.on('room_created', (data) => {
       currentRoomCode = data.roomCode;
+      sessionStorage.setItem('roomCode', currentRoomCode); // Сохраняем для реконнекта
       isHost = true;
       lobbyCodeDisplay.textContent = currentRoomCode;
       showScreen(screenLobby);
@@ -596,10 +601,11 @@
       updateLobbyUI(data.players);
     });
 
-    // ОБРАБОТКА СМЕНЫ СОСТОЯНИЙ ИГРЫ
+    // ОБРАБОТКА ИЗМЕНЕНИЙ СОСТОЯНИЙ ИГРЫ
     socket.on('game_state_update', (data) => {
       if (data.roomCode) {
         currentRoomCode = data.roomCode;
+        sessionStorage.setItem('roomCode', currentRoomCode);
       }
 
       if (data.status === 'INPUTTING') {
@@ -610,27 +616,27 @@
       else if (data.status === 'PLAYING') {
         activePlayerId = data.activePlayerId;
         showScreen(screenGame);
+        clearCanvas(); // Сбрасываем рисовалку на каждом новом ходу
 
         const activePlayer = data.players.find(p => p.socketId === activePlayerId);
         gameActivePlayer.textContent = activePlayer.name;
 
-        // Сброс модалок
+        // Очистка модалок
         document.getElementById('guess-verification-block').classList.add('hidden');
         document.getElementById('guess-waiting-block').classList.add('hidden');
         document.getElementById('btn-ask').disabled = false;
         document.getElementById('btn-guess-attempt').disabled = false;
 
-        // 1. Отрисовка личной истории вопросов текущего клиента (Видна всегда!)
+        // Локальная отрисовка двух видов историй вопросов
         renderHistory(data.myPersonalHistory, myPersonalHistoryLog);
-
-        // 2. Отрисовка истории угадывающего игрока
         renderHistory(data.activePlayerHistory, gameHistoryLog);
 
         if (socket.id === activePlayerId) {
           // МЫ УГАДЫВАЕМ
           gameHistoryTitle.textContent = "История твоих вопросов:";
-          reactionPanel.classList.add('hidden'); // Скрываем панель реакций для угадывающего
-          
+          reactionPanel.classList.add('hidden'); // Скрываем эмодзи
+          myPersonalHistoryBlock.classList.add('hidden'); // Скрываем блок "Моя история" (чтобы не дублировать)
+
           gameAnswererZone.classList.add('hidden');
           gameGuesserZone.classList.remove('hidden');
           questionInputBlock.classList.remove('hidden');
@@ -638,8 +644,9 @@
         } else {
           // МЫ ОТВЕЧАЕМ
           gameHistoryTitle.textContent = "История его вопросов:";
-          reactionPanel.classList.remove('hidden'); // Включаем реакции для скучающего зала!
-          
+          reactionPanel.classList.remove('hidden'); // Включаем реакции
+          myPersonalHistoryBlock.classList.remove('hidden'); // Показываем нашу личную историю в углу!
+
           gameAnswererZone.classList.remove('hidden');
           gameGuesserZone.classList.add('hidden');
           
@@ -648,10 +655,10 @@
           
           gameQuestionText.textContent = 'Ожидаем вопрос...';
           
-          // Скрываем кнопки, пока нет вопроса
+          // Скрываем кнопки голосования
           votingButtonsGrid.classList.add('hidden');
           
-          // Сразу инициализируем правильный счетчик игроков на экране!
+          // Сразу инициализируем счетчик на экране
           voteProgressStatus.classList.remove('hidden');
           votedCountDisplay.textContent = '0';
           votersTotalDisplay.textContent = data.players.length - 1;
@@ -669,14 +676,12 @@
       lastAskedQuestion = data.question;
 
       if (socket.id !== activePlayerId) {
-        // Мы отвечаем: Показываем вопрос и открываем кнопки ДА/НЕТ
+        // Мы отвечаем: Показываем вопрос и открываем ДА/НЕТ
         gameQuestionText.textContent = `«${data.question}»`;
         votingButtonsGrid.classList.remove('hidden');
         
         const buttons = document.querySelectorAll('#voting-buttons-grid button');
-        buttons.forEach(btn => {
-          btn.disabled = false;
-        });
+        buttons.forEach(btn => btn.disabled = false);
       } else {
         // Мы угадываем: Скрываем инпут, выводим лайв-результаты
         questionInputBlock.classList.add('hidden');
@@ -700,12 +705,12 @@
 
     // СОКЕТ: Голосование завершено
     socket.on('voting_complete', (data) => {
-      const { isYes, votes, activePlayerHistory } = data;
+      const { isYes, isTie, votes, activePlayerHistory } = data;
       
-      // Перерисовываем историю ходящего игрока
+      // Перерисовываем историю ходящего
       renderHistory(activePlayerHistory, gameHistoryLog);
 
-      // Если мы голосовали по СВОЕМУ вопросу, сервер тоже вернет нам обновленную личную историю
+      // Если мы сами угадываем, обновляем и нашу личную историю!
       if (socket.id === activePlayerId) {
         renderHistory(activePlayerHistory, myPersonalHistoryLog);
       }
@@ -721,9 +726,18 @@
         verdictText.classList.remove('hidden');
 
         if (isYes) {
-          verdictText.textContent = '🎉 Большинство отвело ДА! Задай еще вопрос.';
+          verdictText.textContent = '🎉 Большинство ответило ДА! Задай еще вопрос.';
           verdictText.className = 'text-xs font-black uppercase text-green-400 mt-2 animate-bounce';
           
+          setTimeout(() => {
+            verdictText.classList.add('hidden');
+            liveVotesResults.classList.add('hidden');
+            questionInputBlock.classList.remove('hidden');
+          }, 3000);
+        } else if (isTie) {
+          verdictText.textContent = '🤷 Мнения разделились! Задай другой вопрос.';
+          verdictText.className = 'text-xs font-black uppercase text-gray-400 mt-2';
+
           setTimeout(() => {
             verdictText.classList.add('hidden');
             liveVotesResults.classList.add('hidden');
@@ -737,6 +751,8 @@
         votingButtonsGrid.classList.add('hidden');
         if (isYes) {
           gameQuestionText.textContent = 'Ответ ДА! Угадывающий продолжает ходить.';
+        } else if (isTie) {
+          gameQuestionText.textContent = 'Мнения разделились! Угадывающий пробует снова.';
         } else {
           gameQuestionText.textContent = 'Ответ НЕТ! Передаем ход...';
         }
@@ -761,30 +777,27 @@
       document.getElementById('btn-guess-attempt').disabled = true;
     });
 
-    // СОКЕТ: Прием и отрисовка летящей реакции на экране
+    // СОКЕТ: Прием летящей эмодзи-реакции на экран с ником!
     socket.on('broadcast_reaction', (data) => {
       const { emoji, senderName } = data;
       const container = document.getElementById('reaction-container');
 
-      // Создаем красивый летящий эмодзи
+      // Создаем плавающее облачко со смайликом и ником
       const el = document.createElement('div');
-      el.className = 'floating-emoji';
-      el.textContent = emoji;
+      el.className = 'floating-emoji bg-indigo-950/90 text-white border-2 border-black px-3 py-1.5 rounded-full font-black text-sm flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]';
+      el.innerHTML = `<span>${senderName}:</span> <span class="text-2xl">${emoji}</span>`;
 
-      // Генерируем случайное положение по горизонтали, чтобы они не летели по одной линии
-      const randomX = Math.floor(Math.random() * 80) + 10; // от 10% до 90% ширины
+      // Генерируем случайное положение по горизонтали
+      const randomX = Math.floor(Math.random() * 60) + 10; // от 10% до 70% ширины
       el.style.left = `${randomX}%`;
 
       container.appendChild(el);
-      playSound('click'); // Воспроизводим звук клика при вылете
 
-      // Удаляем эмодзи из DOM дерева после окончания анимации
-      setTimeout(() => {
-        el.remove();
-      }, 2500);
+      // Автоматическое удаление элемента из дерева
+      setTimeout(() => { el.remove(); }, 2500);
     });
 
-    // УНИВЕРСАЛЬНАЯ ОТРИСОВКА ИСТОРИИ (В ЛЮБОЙ ЛОГ)
+    // УНИВЕРСАЛЬНАЯ ОТРИСОВКА ИСТОРИИ (С защитой от длинных текстов!)
     function renderHistory(historyArray, logElement) {
       logElement.innerHTML = '';
 
@@ -797,12 +810,16 @@
 
       historyArray.forEach(item => {
         const logItem = document.createElement('div');
-        logItem.className = "flex justify-between border-b border-black/20 pb-1";
-        const verdictColor = item.verdict.includes('ДА') ? 'text-green-400' : 'text-red-400';
+        // Защита от переполнения: верстка на гибкой сетке flex-col с автопереносом слов
+        logItem.className = "flex flex-col gap-1 border-b border-black/20 pb-1.5 text-sm";
+        
+        const verdictColor = item.verdict.includes('ДА') ? 'text-green-400' : (item.verdict.includes('НЕТ') ? 'text-red-400' : 'text-gray-400');
         
         logItem.innerHTML = `
-          <span class="text-white">❓ ${item.question}</span>
-          <span class="${verdictColor} font-black">${item.verdict}</span>
+          <div class="flex justify-between items-start gap-2">
+            <span class="text-white break-words text-left">❓ ${item.question}</span>
+            <span class="${verdictColor} font-black shrink-0">${item.verdict}</span>
+          </div>
         `;
         logElement.appendChild(logItem);
       });
@@ -818,7 +835,7 @@
         showToast(`🎉 ${data.playerName} правильно угадал, что он — ${data.character}!`, 4000, true);
       } else {
         playSound('incorrect');
-        showToast(`❌ Зал посчитал догадку игрока ${data.playerName} неверной. Ход переходит дальше.`, 4000, false);
+        showToast(`❌ Зал отклонил догадку игрока ${data.playerName}! Ход передан.`, 4000, false);
       }
     });
 
@@ -854,7 +871,7 @@
       }
     }
 
-    // ОТРИСОВКА ФИНАЛЬНЫХ РЕЗУЛЬТАТОВ (С динамическим маскотом!)
+    // ОТРИСОВКА ФИНАЛЬНЫХ РЕЗУЛЬТАТОВ (С динамическим маскотом)
     function updateResultsUI(players) {
       resultsList.innerHTML = '';
 
@@ -933,7 +950,65 @@
       }, 1000);
     }
 
-    // Ошибки сокетов выводим через тост
+    // ==============================================
+    // ЛОКАЛЬНАЯ РИСОВАЛКА НА CANVAS
+    // ==============================================
+    const canvas = document.getElementById('drawing-canvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+
+    // Настройка кисти (стиль комиксов)
+    ctx.strokeStyle = '#facc15'; // Желтый неоновый цвет
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    function getCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    }
+
+    function startDraw(e) {
+      isDrawing = true;
+      const coords = getCoords(e);
+      ctx.beginPath();
+      ctx.moveTo(coords.x, coords.y);
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      e.preventDefault(); // Предотвращаем скролл на мобильных устройствах
+      const coords = getCoords(e);
+      ctx.lineTo(coords.x, coords.y);
+      ctx.stroke();
+    }
+
+    function stopDraw() {
+      isDrawing = false;
+      ctx.closePath();
+    }
+
+    // Слушатели мыши
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDraw);
+    canvas.addEventListener('mouseleave', stopDraw);
+
+    // Слушатели тачскрина для мобилок
+    canvas.addEventListener('touchstart', startDraw);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', stopDraw);
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    window.clearCanvas = clearCanvas;
+
     socket.on('error_message', (message) => {
       showToast(message, 3000, false);
     });

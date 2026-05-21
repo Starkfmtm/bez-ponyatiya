@@ -6,43 +6,33 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: "*", // Разрешаем подключение с любых адресов для тестирования
-  }
+  cors: { origin: "*" }
 });
 
 const PORT = process.env.PORT || 3000;
-
-// Хранилище комнат в оперативной памяти сервера
 const rooms = new Map();
 
-// Указываем Express отдавать статические файлы (наши HTML страницы)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Генерация случайного 4-значного кода комнаты (только буквы)
 function generateRoomCode() {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   let code = '';
   for (let i = 0; i < 4; i++) {
     code += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
   }
-  // Если код уже занят, генерируем заново
   if (rooms.has(code)) return generateRoomCode();
   return code;
 }
 
-// Распределение целей для загадывания слов «по кругу»
 function assignTargets(players) {
   const len = players.length;
   for (let i = 0; i < len; i++) {
-    // Следующий игрок в массиве (последний загадывает первому)
     const targetIndex = (i + 1) % len;
     players[i].targetPlayerId = players[targetIndex].socketId;
     players[i].targetName = players[targetIndex].name;
   }
 }
 
-// Безопасная отправка данных: скрываем от игрока его собственного персонажа
 function getMaskedPlayersFor(room, socketId) {
   return room.players.map(p => {
     const isSelf = p.socketId === socketId;
@@ -50,7 +40,6 @@ function getMaskedPlayersFor(room, socketId) {
       socketId: p.socketId,
       name: p.name,
       isHost: p.isHost,
-      // Если это сам игрок и игра идет, заменяем его карту на знак вопроса
       character: (isSelf && room.status === 'PLAYING') ? '❓' : p.character,
       hasGuessed: p.hasGuessed,
       targetName: p.targetName
@@ -58,11 +47,9 @@ function getMaskedPlayersFor(room, socketId) {
   });
 }
 
-// Обработка WebSocket подключений
 io.on('connection', (socket) => {
-  console.log(`Новое сокет-подключение: ${socket.id}`);
+  console.log(`Новое подключение: ${socket.id}`);
 
-  // 1. Создание комнаты
   socket.on('create_room', (data) => {
     const { username } = data;
     if (!username) return socket.emit('error_message', 'Имя игрока обязательно');
@@ -70,7 +57,7 @@ io.on('connection', (socket) => {
     const roomCode = generateRoomCode();
     const newRoom = {
       roomCode,
-      status: 'LOBBY', // LOBBY, INPUTTING, PLAYING, RESULTS
+      status: 'LOBBY',
       players: [
         {
           socketId: socket.id,
@@ -81,13 +68,14 @@ io.on('connection', (socket) => {
           targetName: null,
           hasGuessed: false,
           questionsCount: 0,
-          history: [] // Личная история вопросов игрока
+          history: []
         }
       ],
       activePlayerIndex: 0,
       currentQuestion: null,
       votes: { yes: 0, no: 0 },
-      votedPlayers: []
+      votedPlayers: [],
+      turnTimeout: null
     };
 
     rooms.set(roomCode, newRoom);
@@ -97,11 +85,8 @@ io.on('connection', (socket) => {
       roomCode,
       players: getMaskedPlayersFor(newRoom, socket.id)
     });
-
-    console.log(`Комната ${roomCode} успешно создана игроком ${username}`);
   });
 
-  // 2. Вход в комнату по коду (С проверкой на дубликаты имен)
   socket.on('join_room', (data) => {
     const { username, roomCode } = data;
     const cleanCode = roomCode ? roomCode.toUpperCase().trim() : '';
@@ -110,21 +95,38 @@ io.on('connection', (socket) => {
     if (!room) {
       return socket.emit('error_message', 'Комната не найдена. Проверь код!');
     }
+
+    const trimmedName = username ? username.trim() : '';
+
+    // Восстановление сессии для вылетевшего игрока
+    const existingPlayer = room.players.find(p => p.name.toLowerCase() === trimmedName.toLowerCase());
+    if (existingPlayer) {
+      if (room.status === 'PLAYING') {
+        existingPlayer.socketId = socket.id;
+        socket.join(cleanCode);
+
+        const activePlayer = room.players[room.activePlayerIndex];
+        socket.emit('game_state_update', {
+          status: room.status,
+          roomCode: room.roomCode,
+          activePlayerId: activePlayer.socketId,
+          activePlayerHistory: activePlayer.history,
+          myPersonalHistory: existingPlayer.history,
+          players: getMaskedPlayersFor(room, socket.id)
+        });
+        return;
+      } else {
+        return socket.emit('error_message', 'Это имя уже занято!');
+      }
+    }
+
     if (room.status !== 'LOBBY') {
-      return socket.emit('error_message', 'Игра в этой комнате уже началась.');
+      return socket.emit('error_message', 'Игра уже началась.');
     }
     if (room.players.length >= 8) {
-      return socket.emit('error_message', 'Комната уже заполнена (макс. 8 человек).');
+      return socket.emit('error_message', 'Комната заполнена.');
     }
 
-    // Проверка на уникальность имени внутри комнаты
-    const trimmedName = username ? username.trim() : '';
-    const nameExists = room.players.some(p => p.name.toLowerCase() === trimmedName.toLowerCase());
-    if (nameExists) {
-      return socket.emit('error_message', 'Это имя уже занято в этой комнате! Выбери другое.');
-    }
-
-    // Добавляем нового игрока
     const newPlayer = {
       socketId: socket.id,
       name: trimmedName,
@@ -134,13 +136,12 @@ io.on('connection', (socket) => {
       targetName: null,
       hasGuessed: false,
       questionsCount: 0,
-      history: [] // Личная история вопросов игрока
+      history: []
     };
 
     room.players.push(newPlayer);
     socket.join(cleanCode);
 
-    // Уведомляем всех в комнате об обновлении списка игроков
     room.players.forEach(p => {
       io.to(p.socketId).emit('room_state_update', {
         roomCode: room.roomCode,
@@ -148,53 +149,37 @@ io.on('connection', (socket) => {
         players: getMaskedPlayersFor(room, p.socketId)
       });
     });
-
-    console.log(`Игрок ${trimmedName} вошел в комнату ${cleanCode}`);
   });
 
-  // 3. Запуск игры (только для Хоста)
   socket.on('start_game', (data) => {
     const { roomCode } = data;
     const room = rooms.get(roomCode);
-
     if (!room) return;
-    const player = room.players.find(p => p.socketId === socket.id);
-    if (!player || !player.isHost) return;
-
-    if (room.players.length < 2) {
-      return socket.emit('error_message', 'Для игры нужно минимум 2 игрока.');
-    }
 
     room.status = 'INPUTTING';
     assignTargets(room.players);
 
-    // Рассылаем игрокам событие начала ввода слов
     room.players.forEach(p => {
       io.to(p.socketId).emit('game_state_update', {
         status: room.status,
-        roomCode: room.roomCode, // Передаем код комнаты принудительно
+        roomCode: room.roomCode,
         targetName: p.targetName,
         players: getMaskedPlayersFor(room, p.socketId)
       });
     });
   });
 
-  // 4. Получение загаданного персонажа от игрока
   socket.on('submit_character', (data) => {
     const { roomCode, character } = data;
     const room = rooms.get(roomCode);
-    if (!room || room.status !== 'INPUTTING') return;
+    if (!room) return;
 
     const currentPlayer = room.players.find(p => p.socketId === socket.id);
     if (!currentPlayer) return;
 
-    // Находим игрока, которому текущий игрок должен был придумать роль
     const targetPlayer = room.players.find(p => p.socketId === currentPlayer.targetPlayerId);
-    if (targetPlayer) {
-      targetPlayer.character = character.trim();
-    }
+    if (targetPlayer) targetPlayer.character = character.trim();
 
-    // Проверяем, все ли игроки заполнили персонажей
     const allSubmitted = room.players.every(p => p.character !== null);
 
     if (allSubmitted) {
@@ -205,25 +190,29 @@ io.on('connection', (socket) => {
       room.players.forEach(p => {
         io.to(p.socketId).emit('game_state_update', {
           status: room.status,
-          roomCode: room.roomCode, // Передаем код комнаты принудительно
+          roomCode: room.roomCode,
           activePlayerId: nextActivePlayer.socketId,
-          activePlayerHistory: nextActivePlayer.history, // Отправляем пустую историю первого игрока
+          activePlayerHistory: nextActivePlayer.history,
+          myPersonalHistory: p.history,
           players: getMaskedPlayersFor(room, p.socketId)
         });
       });
     } else {
-      // Иначе просто сообщаем текущему игроку, что его голос принят
       socket.emit('waiting_for_others');
     }
   });
 
-  // 5. Обработка вопроса отгадывающего игрока
   socket.on('submit_question', (data) => {
     const { roomCode, question } = data;
     const room = rooms.get(roomCode);
-    if (!room || room.status !== 'PLAYING') return;
+    if (!room) return;
 
-    // Сброс голосов для нового вопроса
+    // Сброс таймера переключения хода, так как игрок задал новый вопрос
+    if (room.turnTimeout) {
+      clearTimeout(room.turnTimeout);
+      room.turnTimeout = null;
+    }
+
     room.currentQuestion = question;
     room.votes = { yes: 0, no: 0 };
     room.votedPlayers = [];
@@ -234,19 +223,14 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 6. Обработка голосов (только ДА / НЕТ)
   socket.on('submit_vote', (data) => {
-    const { roomCode, voteType } = data; // 'yes' или 'no'
+    const { roomCode, voteType } = data;
     const room = rooms.get(roomCode);
     if (!room || room.status !== 'PLAYING') return;
 
     const activePlayer = room.players[room.activePlayerIndex];
-    if (socket.id === activePlayer.socketId) return; // Угадывающий не голосует
-    if (room.votedPlayers.includes(socket.id)) return; // Уже голосовал
-
-    // Инициализируем голоса, если их не было (для безопасности)
-    if (!room.votes.yes) room.votes.yes = 0;
-    if (!room.votes.no) room.votes.no = 0;
+    if (socket.id === activePlayer.socketId) return;
+    if (room.votedPlayers.includes(socket.id)) return;
 
     room.votes[voteType]++;
     room.votedPlayers.push(socket.id);
@@ -254,52 +238,61 @@ io.on('connection', (socket) => {
     const totalVoters = room.players.length - 1;
     const votedCount = room.votedPlayers.length;
 
-    // Отправляем обновленные данные о голосах в реальном времени
     io.to(roomCode).emit('votes_updated', {
       votes: room.votes,
       totalVoters,
       votedCount
     });
 
-    // Если проголосовали абсолютно все отвечающие
     if (votedCount === totalVoters) {
       const yesVotes = room.votes.yes;
       const noVotes = room.votes.no;
-      
-      // Большинство ответило ДА (при ничьей ход тоже сохраняется)
-      const isYes = yesVotes >= noVotes;
-      const verdict = isYes ? 'ДА 👍' : 'НЕТ 👎';
 
-      // Записываем вопрос в личную историю активного игрока
+      let verdict = '';
+      let isYes = false;
+      let isTie = false;
+
+      if (yesVotes > noVotes) {
+        verdict = 'ДА 👍';
+        isYes = true;
+      } else if (noVotes > yesVotes) {
+        verdict = 'НЕТ 👎';
+        isYes = false;
+      } else {
+        verdict = 'НЕПОНЯТНО 🤷';
+        isYes = false;
+        isTie = true;
+      }
+
       activePlayer.history.push({
         question: room.currentQuestion,
         verdict: verdict
       });
 
-      // Оповещаем клиентов о результате голосования и шлем его обновленную историю
       io.to(roomCode).emit('voting_complete', {
         isYes,
+        isTie,
         votes: room.votes,
         activePlayerHistory: activePlayer.history
       });
 
-      if (isYes) {
-        // Ответ "ДА": Сбрасываем вопрос и голоса, но ХОД НЕ МЕНЯЕМ (игрок спрашивает снова)
+      if (isYes || isTie) {
+        // При ДА или НИЧЬЕЙ ход остается у текущего игрока
         room.currentQuestion = null;
         room.votes = { yes: 0, no: 0 };
         room.votedPlayers = [];
       } else {
-        // Ответ "НЕТ": Автоматически передаем ход следующему через 3.5 секунды
-        setTimeout(() => {
+        // При НЕТ запускаем безопасный таймер передачи хода
+        if (room.turnTimeout) clearTimeout(room.turnTimeout);
+
+        room.turnTimeout = setTimeout(() => {
           const currentRoom = rooms.get(roomCode);
           if (!currentRoom || currentRoom.status !== 'PLAYING') return;
 
-          // Очищаем данные вопроса
           currentRoom.currentQuestion = null;
           currentRoom.votes = { yes: 0, no: 0 };
           currentRoom.votedPlayers = [];
 
-          // Ищем следующего угадывающего
           const startIndex = currentRoom.activePlayerIndex;
           do {
             currentRoom.activePlayerIndex = (currentRoom.activePlayerIndex + 1) % currentRoom.players.length;
@@ -307,13 +300,13 @@ io.on('connection', (socket) => {
 
           const nextActivePlayer = currentRoom.players[currentRoom.activePlayerIndex];
 
-          // Рассылаем игрокам событие смены хода и подкидываем историю следующего игрока
           currentRoom.players.forEach(p => {
             io.to(p.socketId).emit('game_state_update', {
               status: currentRoom.status,
               roomCode: currentRoom.roomCode,
               activePlayerId: nextActivePlayer.socketId,
-              activePlayerHistory: nextActivePlayer.history, // История нового угадывающего
+              activePlayerHistory: nextActivePlayer.history,
+              myPersonalHistory: p.history,
               players: getMaskedPlayersFor(currentRoom, p.socketId)
             });
           });
@@ -322,21 +315,23 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 7. Попытка угадать персонажа (Запуск голосования зала)
   socket.on('guess_attempt', (data) => {
     const { roomCode, guess } = data;
     const room = rooms.get(roomCode);
     if (!room || room.status !== 'PLAYING') return;
 
+    if (room.turnTimeout) {
+      clearTimeout(room.turnTimeout);
+      room.turnTimeout = null;
+    }
+
     const activePlayer = room.players[room.activePlayerIndex];
     if (socket.id !== activePlayer.socketId) return;
 
-    // Сохраняем догадку на сервере для последующей проверки
     room.pendingGuess = guess.trim();
-    room.votes = { yes: 0, no: 0 }; // Обнуляем голоса для этого решения
+    room.votes = { yes: 0, no: 0 };
     room.votedPlayers = [];
 
-    // Отправляем догадку всем отвечающим для верификации
     room.players.forEach(p => {
       if (p.socketId !== socket.id) {
         io.to(p.socketId).emit('guess_verification_request', {
@@ -345,21 +340,19 @@ io.on('connection', (socket) => {
           actualCharacter: activePlayer.character
         });
       } else {
-        // Сам угадывающий просто видит экран ожидания вердикта
         socket.emit('guess_waiting_for_verdict');
       }
     });
   });
 
-  // 7.1. Обработка вердикта игроков по поводу догадки
   socket.on('submit_guess_verdict', (data) => {
-    const { roomCode, isCorrect } = data; // true (засчитать) или false (отклонить)
+    const { roomCode, isCorrect } = data;
     const room = rooms.get(roomCode);
     if (!room || room.status !== 'PLAYING') return;
 
     const activePlayer = room.players[room.activePlayerIndex];
-    if (socket.id === activePlayer.socketId) return; // Сам угадывающий не голосует
-    if (room.votedPlayers.includes(socket.id)) return; // Защита от мультикликов
+    if (socket.id === activePlayer.socketId) return;
+    if (room.votedPlayers.includes(socket.id)) return;
 
     if (isCorrect) room.votes.yes++;
     else room.votes.no++;
@@ -369,7 +362,6 @@ io.on('connection', (socket) => {
     const totalVoters = room.players.length - 1;
 
     if (room.votedPlayers.length === totalVoters) {
-      // Все проголосовали. Определяем судьбу игрока
       const approved = room.votes.yes >= room.votes.no;
 
       if (approved) {
@@ -381,13 +373,14 @@ io.on('connection', (socket) => {
           character: activePlayer.character
         });
 
-        // Проверяем, закончена ли игра
         const remainingPlayers = room.players.filter(p => !p.hasGuessed);
         if (remainingPlayers.length <= 1) {
           room.status = 'RESULTS';
-          io.to(roomCode).emit('game_state_update', {
-            status: room.status,
-            players: room.players
+          room.players.forEach(p => {
+            io.to(p.socketId).emit('game_state_update', {
+              status: room.status,
+              players: room.players
+            });
           });
           return;
         }
@@ -398,7 +391,6 @@ io.on('connection', (socket) => {
         });
       }
 
-      // Передаем ход следующему игроку (в любом случае)
       room.currentQuestion = null;
       room.votes = { yes: 0, no: 0 };
       room.votedPlayers = [];
@@ -413,61 +405,52 @@ io.on('connection', (socket) => {
       room.players.forEach(p => {
         io.to(p.socketId).emit('game_state_update', {
           status: room.status,
-          roomCode: room.roomCode, // Передаем код комнаты принудительно
+          roomCode: room.roomCode,
           activePlayerId: nextActivePlayer.socketId,
           activePlayerHistory: nextActivePlayer.history,
+          myPersonalHistory: p.history,
           players: getMaskedPlayersFor(room, p.socketId)
         });
       });
     }
   });
 
-  // 8. Ручная передача хода следующему игроку (упрощенная)
-  socket.on('next_turn', (data) => {
-    const { roomCode } = data;
+  // Передача эмодзи-реакций (спам!)
+  socket.on('send_reaction', (data) => {
+    const { roomCode, emoji } = data;
     const room = rooms.get(roomCode);
-    if (!room || room.status !== 'PLAYING') return;
+    if (!room) return;
 
-    room.currentQuestion = null;
-    room.votes = { yes: 0, no: 0 };
-    room.votedPlayers = [];
+    const sender = room.players.find(p => p.socketId === socket.id);
+    const senderName = sender ? sender.name : 'Кто-то';
 
-    const startIndex = room.activePlayerIndex;
-    do {
-      room.activePlayerIndex = (room.activePlayerIndex + 1) % room.players.length;
-    } while (room.players[room.activePlayerIndex].hasGuessed && room.activePlayerIndex !== startIndex);
-
-    const nextActivePlayer = room.players[room.activePlayerIndex];
-
-    room.players.forEach(p => {
-      io.to(p.socketId).emit('game_state_update', {
-        status: room.status,
-        roomCode: room.roomCode,
-        activePlayerId: nextActivePlayer.socketId,
-        activePlayerHistory: nextActivePlayer.history,
-        players: getMaskedPlayersFor(room, p.socketId)
-      });
+    io.to(roomCode).emit('broadcast_reaction', {
+      emoji,
+      senderName
     });
   });
 
-  // Отключение игрока от сервера
   socket.on('disconnect', () => {
     console.log(`Игрок отключился: ${socket.id}`);
-    
     for (const [roomCode, room] of rooms.entries()) {
       const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
       if (playerIndex !== -1) {
         const leftPlayer = room.players[playerIndex];
+        
+        // В процессе активного матча НЕ удаляем профиль игрока из памяти для авто-реконнекта!
+        if (room.status === 'PLAYING') {
+          console.log(`Игрок ${leftPlayer.name} временно отключился от активного матча.`);
+          return; 
+        }
+
         room.players.splice(playerIndex, 1);
 
         if (room.players.length === 0) {
           rooms.delete(roomCode);
-          console.log(`Комната ${roomCode} удалена (нет игроков)`);
         } else {
           if (leftPlayer.isHost) {
             room.players[0].isHost = true;
           }
-
           room.players.forEach(p => {
             io.to(p.socketId).emit('room_state_update', {
               roomCode: room.roomCode,
@@ -482,7 +465,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// Запуск сервера
 server.listen(PORT, () => {
-  console.log(`Сервер «Без Понятия!» успешно запущен на порту ${PORT}`);
+  console.log(`Сервер запущен на порту ${PORT}`);
 });
