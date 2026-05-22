@@ -921,7 +921,9 @@
       players.forEach((player, index) => {
         const rotationClass = rotations[index % rotations.length];
         const card = document.createElement('div');
-        const offlineBadge = !player.online ? '<span class="text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded ml-1 uppercase">Вылетел</span>' : '';
+        // Теперь статус «Вылетел» покажется только в том случае, если сервер явно прислал online: false
+        const isOffline = player.online === false;
+        const offlineBadge = isOffline ? '<span class="text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded ml-1 uppercase">Вылетел</span>' : '';
         const readyBadge = player.hasSubmitted ? '<span class="text-[9px] bg-green-500 text-white px-1.5 py-0.5 rounded ml-1 uppercase">Готов</span>' : '';
 
         card.className = `bg-yellow-100 text-black border-4 border-black p-3 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} flex flex-col justify-between min-h-[80px]`;
