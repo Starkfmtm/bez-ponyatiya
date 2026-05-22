@@ -4,9 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Без Понятия!</title>
+  <!-- Подключение Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Подключение клиентской библиотеки Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+  <!-- Подключение шрифтов -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   
   <style>
@@ -19,6 +21,10 @@
     }
     .font-title {
       font-family: 'Montserrat', sans-serif;
+    }
+    img {
+      user-select: none;
+      -webkit-user-drag: none;
     }
     @keyframes gentle-wiggle {
       0%, 100% { transform: rotate(-4deg) translateY(0); }
@@ -88,7 +94,7 @@
     <div class="flex justify-center mb-6 relative">
       <div class="absolute w-36 h-36 bg-indigo-950/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="w-36 h-36 relative z-10 animate-wiggle">
-        <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]" alt="Маскот">
+        <img src="mascot.png" draggable="false" class="w-full h-full object-contain drop-shadow-[6px_6px_0px_rgba(0,0,0,1)]" alt="Маскот">
       </div>
     </div>
 
@@ -165,7 +171,7 @@
     <div class="flex justify-center mb-6 relative">
       <div class="absolute w-28 h-28 bg-indigo-950/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="w-28 h-28 relative z-10 animate-wiggle">
-        <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот размышления">
+        <img src="mascot.png" draggable="false" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот размышления">
       </div>
     </div>
 
@@ -175,8 +181,8 @@
         <div id="target-player-display" class="inline-block bg-pink-500 border-4 border-black px-6 py-2 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1.5deg]">---</div>
       </div>
       <div class="transform rotate-[-0.5deg]">
-        <!-- Лимит символов увеличен до 60! -->
-        <input type="text" id="character-input" maxlength="60" placeholder="Например: Человек-паук на пенсии" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-yellow-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+        <!-- Лимит символов увеличен до 60, пример изменен на Трампа! -->
+        <input type="text" id="character-input" maxlength="60" placeholder="Например: Дональд Трамп" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-yellow-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
       </div>
       <div class="space-y-3">
         <button id="btn-random" class="w-full bg-cyan-400 hover:bg-cyan-300 text-black font-black text-sm py-2 px-4 rounded-xl border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider">🎲 Случайный персонаж</button>
@@ -259,7 +265,7 @@
         <div class="flex justify-center relative">
           <div class="absolute w-28 h-28 bg-indigo-900/50 rounded-full border-4 border-dashed border-indigo-800/60 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
           <div class="w-28 h-28 relative z-10 animate-wiggle">
-            <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот ожидания">
+            <img src="mascot.png" draggable="false" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот ожидания">
           </div>
         </div>
         <div class="space-y-1">
@@ -295,7 +301,7 @@
       </div>
     </section>
 
-    <!-- ДВЕ РАЗДЕЛЬНЫЕ ИСТОРИИ ВОПРОСОВ (Переработана верстка!) -->
+    <!-- ДВЕ РАЗДЕЛЬНЫЕ ИСТОРИИ ВОПРОСОВ -->
     <section class="mt-6 border-t-4 border-black/40 pt-4 space-y-4">
       
       <!-- 1. Моя персональная история (Видна ВСЕГДА) -->
@@ -327,7 +333,7 @@
     <div class="flex justify-center mb-6 relative">
       <div class="absolute w-36 h-36 bg-indigo-950/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="w-32 h-32 relative z-10 animate-winner">
-        <img id="results-mascot" src="mascot-happy.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот">
+        <img id="results-mascot" src="mascot-happy.png" draggable="false" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот">
       </div>
     </div>
 
@@ -352,29 +358,66 @@
   </main>
 
   <script>
-    // Инициализация базы данных персонажей (на самом верху скрипта)
-    const famousCharacters = [
-      'Губка Боб', 'Шрек', 'Пикачу', 'Наруто', 'Миньон', 'Гомер Симпсон', 'Эльза',
-      'Дональд Трамп', 'Илон Маск', 'Майкл Джексон', 'Альберт Эйнштейн', 'Хасбик', 'Терминатор',
-      'Человек-Паук', 'Гарри Поттер', 'Дарт Вейдер', 'Капитан Джек Воробей', 'Шерлок Холмс', 'Бэтмен', 'Танос',
-      'Санта Клаус', 'Мона Лиза', 'Граф Дракула', 'Баба Яга', 'Агент 007'
-    ];
-
     const socket = io();
 
     // ==============================================
-    // ЗВУКОВОЙ ДВИЖОК (Браузерный Audio API)
+    // ГЕНЕРАТИВНЫЙ ЗВУКОВОЙ ДВИЖОК (Web Audio API)
     // ==============================================
-    const sfx = {
-      click: new Audio('https://www.soundjay.com/buttons/sounds/button-16.mp3'),
-      correct: new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3'),
-      incorrect: new Audio('https://www.soundjay.com/buttons/sounds/button-10.mp3')
-    };
+    let audioCtx = null;
 
-    function playSound(sound) {
-      if (sfx[sound]) {
-        sfx[sound].currentTime = 0; // Сбрасываем в начало для повторного клика
-        sfx[sound].play().catch(e => console.log("Браузер заблокировал автовоспроизведение до первого клика:", e));
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playSound(type) {
+      initAudio();
+      if (!audioCtx) return;
+      
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'click') {
+        // Мягкий клик
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+      } 
+      else if (type === 'correct') {
+        // Праздничный мажорный аккорд (Свист успеха)
+        const now = audioCtx.currentTime;
+        osc.type = 'triangle';
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.45);
+
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+        osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+        osc.frequency.setValueAtTime(1046.50, now + 0.24); // C6
+        osc.start();
+        osc.stop(now + 0.45);
+      } 
+      else if (type === 'incorrect') {
+        // Ретро-ошибка (Бузер)
+        const now = audioCtx.currentTime;
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(130, now);
+        osc.frequency.linearRampToValueAtTime(80, now + 0.35);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+        osc.start();
+        osc.stop(now + 0.35);
       }
     }
 
@@ -475,33 +518,22 @@
       const currentScreen = screens.find(s => !s.classList.contains('hidden'));
       
       if (currentScreen && currentScreen !== targetScreen) {
-        // Затухание текущего
         currentScreen.classList.add('opacity-0', 'scale-95');
         currentScreen.classList.remove('opacity-100', 'scale-100');
         
         setTimeout(() => {
           currentScreen.classList.add('hidden');
-          
-          // Появление нового
           targetScreen.classList.remove('hidden');
-          targetScreen.offsetHeight; // Триггер перерисовки
+          targetScreen.offsetHeight; 
           targetScreen.classList.add('opacity-100', 'scale-100');
           targetScreen.classList.remove('opacity-0', 'scale-95');
         }, 300);
       } else {
-        // Самый первый запуск (без анимации затухания)
         targetScreen.classList.remove('hidden');
         targetScreen.classList.add('opacity-100', 'scale-100');
         targetScreen.classList.remove('opacity-0', 'scale-95');
       }
     }
-
-    // Отправка вопроса по клавише Enter
-    document.getElementById('question-input').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        document.getElementById('btn-ask').click();
-      }
-    });
 
     // КЛИК: Создать комнату
     btnCreate.addEventListener('click', () => {
@@ -509,7 +541,7 @@
       const name = usernameInput.value.trim();
       if (!name) return showToast('Имя введи!', 3000, false);
       myName = name;
-      sessionStorage.setItem('username', name); // Сохраняем имя для автореконнекта
+      sessionStorage.setItem('username', name); 
       socket.emit('create_room', { username: name });
     });
 
@@ -546,13 +578,19 @@
       socket.emit('submit_character', { roomCode: currentRoomCode, character: text });
     });
 
-    // КЛИК: Отправить вопрос
+    // КЛИК: Отправить вопрос (С автоблокировкой кнопок угадывающего!)
     document.getElementById('btn-ask').addEventListener('click', () => {
       playSound('click');
       const qInput = document.getElementById('question-input');
       const questionText = qInput.value.trim();
       if (!questionText) return showToast('Запиши вопрос сначала!', 3000, false);
       
+      // БЛОКИРУЕМ кнопки отгадывающего до конца голосования!
+      document.getElementById('btn-ask').disabled = true;
+      document.getElementById('btn-guess-attempt').disabled = true;
+      document.getElementById('btn-ask').classList.add('opacity-50', 'cursor-not-allowed');
+      document.getElementById('btn-guess-attempt').classList.add('opacity-50', 'cursor-not-allowed');
+
       socket.emit('submit_question', { roomCode: currentRoomCode, question: questionText });
       qInput.value = '';
     });
@@ -597,24 +635,26 @@
     // КЛИК: Еще разок (БЕСШОВНЫЙ СБРОС ИГРЫ!)
     btnRestart.addEventListener('click', () => {
       playSound('click');
-      // Очищаем локальные рисунки у себя перед рестартом
-      clearBgCanvas();
-      // Отправляем сигнал серверу сбросить комнату в Лобби
+      clearBgCanvas(); // Локально чистим фон
       socket.emit('restart_game', { roomCode: currentRoomCode });
     });
 
-    // КЛИК: Выход в главное меню
-    btnMainMenu.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
+    // ВЫХОД
     btnLeave.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
+    btnMainMenu.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
 
     // СОКЕТЫ: РЕГИСТРАЦИЯ
     socket.on('room_created', (data) => {
       currentRoomCode = data.roomCode;
-      sessionStorage.setItem('roomCode', currentRoomCode); // Сохраняем для реконнекта
+      sessionStorage.setItem('roomCode', currentRoomCode); 
       isHost = true;
       lobbyCodeDisplay.textContent = currentRoomCode;
       showScreen(screenLobby);
       updateLobbyUI(data.players);
+
+      const me = data.players.find(p => p.socketId === socket.id);
+      if (me && me.color) myBrushColor = me.color;
+      setupBrush();
     });
 
     socket.on('room_state_update', (data) => {
@@ -624,6 +664,10 @@
       if (me) isHost = me.isHost;
       showScreen(screenLobby);
       updateLobbyUI(data.players);
+
+      const mePlayer = data.players.find(p => p.socketId === socket.id);
+      if (mePlayer && mePlayer.color) myBrushColor = mePlayer.color;
+      setupBrush();
     });
 
     // ОБРАБОТКА СМЕНЫ СОСТОЯНИЙ ИГРЫ
@@ -648,18 +692,26 @@
         // Сброс модалок
         document.getElementById('guess-verification-block').classList.add('hidden');
         document.getElementById('guess-waiting-block').classList.add('hidden');
+        
+        // Разблокируем кнопки угадывающего при новом ходе!
         document.getElementById('btn-ask').disabled = false;
         document.getElementById('btn-guess-attempt').disabled = false;
+        document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
+        document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
 
-        // Отрисовка раздельных историй
+        // Личная история игрока
         renderHistory(data.myPersonalHistory, myPersonalHistoryLog);
         renderHistory(data.activePlayerHistory, gameHistoryLog);
+
+        const mePlayer = data.players.find(p => p.socketId === socket.id);
+        if (mePlayer && mePlayer.color) myBrushColor = mePlayer.color;
+        setupBrush();
 
         if (socket.id === activePlayerId) {
           // МЫ УГАДЫВАЕМ
           gameHistoryTitle.textContent = "История твоих вопросов:";
-          reactionPanel.classList.add('hidden'); // Скрываем эмодзи
-          myPersonalHistoryBlock.classList.add('hidden'); // Скрываем блок "Моя история" (чтобы не дублировать)
+          reactionPanel.classList.add('hidden'); 
+          myPersonalHistoryBlock.classList.add('hidden'); 
 
           gameAnswererZone.classList.add('hidden');
           gameGuesserZone.classList.remove('hidden');
@@ -668,8 +720,8 @@
         } else {
           // МЫ ОТВЕЧАЕМ
           gameHistoryTitle.textContent = "История его вопросов:";
-          reactionPanel.classList.remove('hidden'); // Включаем реакции
-          myPersonalHistoryBlock.classList.remove('hidden'); // Показываем нашу личную историю в углу!
+          reactionPanel.classList.remove('hidden'); 
+          myPersonalHistoryBlock.classList.remove('hidden'); 
 
           gameAnswererZone.classList.remove('hidden');
           gameGuesserZone.classList.add('hidden');
@@ -695,7 +747,7 @@
     socket.on('question_broadcast', (data) => {
       lastAskedQuestion = data.question;
 
-      // ПРИНУДИТЕЛЬНО очищаем старые вердикты при выводе нового вопроса
+      // Принудительно очищаем старые вердикты при выводе нового вопроса
       const verdictText = document.getElementById('vote-verdict-text');
       if (verdictText) verdictText.classList.add('hidden');
 
@@ -747,7 +799,13 @@
         playSound('incorrect');
       }
 
+      // Разблокируем кнопки угадывающего, так как раунд голосования завершился!
       if (socket.id === activePlayerId) {
+        document.getElementById('btn-ask').disabled = false;
+        document.getElementById('btn-guess-attempt').disabled = false;
+        document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
+        document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
+
         const verdictText = document.getElementById('vote-verdict-text');
         verdictText.classList.remove('hidden');
 
@@ -851,7 +909,6 @@
 
     // СОКЕТЫ ДЛЯ СЕТЕВОГО РИСОВАНИЯ
     socket.on('broadcast_line', (data) => {
-      // Переводим проценты обратно в пиксели нашего холста
       const x1 = data.x1 * bgCanvas.width;
       const y1 = data.y1 * bgCanvas.height;
       const x2 = data.x2 * bgCanvas.width;
@@ -862,7 +919,7 @@
 
     socket.on('broadcast_clear_drawings', () => {
       bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-      playSound('incorrect'); // Смешной шуршащий звук очистки
+      playSound('incorrect'); 
     });
 
     // СОКЕТ: Результат попытки угадать
@@ -1103,6 +1160,7 @@
     window.addEventListener('touchmove', drawBg);
     window.addEventListener('touchend', stopDrawBg);
 
+    // СЕТЕВОЕ ОЧИЩЕНИЕ (Стирает у всех)
     function clearBgCanvas() {
       if (currentRoomCode) {
         socket.emit('clear_drawings', { roomCode: currentRoomCode });
