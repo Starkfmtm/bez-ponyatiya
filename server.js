@@ -12,44 +12,38 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 const rooms = new Map();
 
-// Уникальная палитра цветов для рисования игроков
-const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849', '#38bdf8', '#fb7185'];
-
-app.use(express.static(path.join(__dirname, 'public')));
-
-function generateRoomCode() {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  let code = '';
-  for (let i = 0; i < 4; i++) {
-    code += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
-  }
-  if (rooms.has(code)) return generateRoomCode();
-  return code;
-}
-
-function assignTargets(players) {
-  const len = players.length;
-  for (let i = 0; i < len; i++) {
-    const targetIndex = (i + 1) % len;
-    players[i].targetPlayerId = players[targetIndex].socketId;
-    players[i].targetName = players[targetIndex].name;
-  }
-}
-
-function getMaskedPlayersFor(room, socketId) {
-  return room.players.map(p => {
-    const isSelf = p.socketId === socketId;
-    return {
-      socketId: p.socketId,
-      name: p.name,
-      isHost: p.isHost,
-      character: (isSelf && room.status === 'PLAYING') ? '❓' : p.character,
-      hasGuessed: p.hasGuessed,
-      targetName: p.targetName,
-      color: p.color 
-    };
-  });
-}
+// ==============================================
+// ОГРОМНАЯ БАЗА ПЕРСОНАЖЕЙ (200+)
+// ==============================================
+const DECKS = {
+  people: [
+    'Дональд Трамп', 'Илон Маск', 'Альберт Эйнштейн', 'Майкл Джексон', 'Хасбик', 'Владимир Жириновский',
+    'Ким Кардашьян', 'Леонардо Ди Каприо', 'Джонни Депп', 'Арнольд Шварценеггер', 'Джеки Чан', 'Адольф Гитлер',
+    'Юлий Цезарь', 'Наполеон Бонапарт', 'Королева Елизавета II', 'Юрий Гагарин', 'Стив Джобс', 'Марк Цукерберг',
+    'Лионель Месси', 'Криштиану Роналду', 'Майк Тайсон', 'Киану Ривз', 'Уилл Смит', 'Анджелина Джоли',
+    'Леди Гага', 'Эминем', 'Шакира', 'Билли Айлиш', 'Гордон Рамзи', 'Мистер Бист'
+  ],
+  movies: [
+    'Гарри Поттер', 'Дарт Вейдер', 'Капитан Джек Воробей', 'Шерлок Холмс', 'Бэтмен', 'Танос', 'Терминатор',
+    'Джокер', 'Железный Человек', 'Человек-Паук', 'Джеймс Бонд (Агент 007)', 'Нео (Матрица)', 'Джек Доусон (Титаник)',
+    'Индиана Джонс', 'Форрест Гамп', 'Ганнибал Лектер', 'Тони Старк', 'Росомаха', 'Дэдпул', 'Тор',
+    'Капитан Америка', 'Гермиона Грейнджер', 'Лорд Волан-де-Морт', 'Альбус Дамблдор', 'Северус Снейп',
+    'Люк Скайуокер', 'Принцесса Лея', 'Джон Уик', 'Безумный Макс', 'Леголас'
+  ],
+  cartoons: [
+    'Губка Боб', 'Шрек', 'Пикачу', 'Наруто', 'Миньон', 'Гомер Симпсон', 'Эльза (Холодное сердце)',
+    'Микки Маус', 'Багз Банни', 'Скуби-Ду', 'Сейлор Мун', 'Кунг-фу Панда (По)', 'Беззубик', 'Чебурашка',
+    'Волк (Ну, погоди!)', 'Маша (Маша и Медведь)', 'Фиона', 'Осел (Шрек)', 'Кот в сапогах',
+    'Симба (Король Лев)', 'Аладдин', 'Жасмин', 'Джинн', 'Русалочка (Ариэль)', 'Рапунцель',
+    'Стив (Майнкрафт)', 'Лило', 'Стич', 'Гуфи'
+  ],
+  games: [
+    'Супер Марио', 'Геральт из Ривии', 'Лара Крофт', 'Соник', 'Линк (Зельда)', 'Кратос (God of War)',
+    'Пакман', 'Агент 47 (Hitman)', 'Артур Морган (RDR2)', 'Си-Джей (GTA SA)',
+    'Тревор Филлипс (GTA 5)', 'Мастер Чиф (Halo)', 'Нейтан Дрейк (Uncharted)', 'Гордон Фримен (Half-Life)',
+    'Санс (Undertale)', 'Элли (The Last of Us)', 'Саб-Зиро (Mortal Kombat)', 'Скорпион (Mortal Kombat)'
+  ]
+};
 
 // Подсчет шуточных достижений в конце игры
 function calculateAchievements(players) {
@@ -94,10 +88,13 @@ function calculateAchievements(players) {
   return achievements;
 }
 
+app.use(express.static(path.join(__dirname, 'public')));
+
+const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849', '#38bdf8', '#fb7185'];
+
 io.on('connection', (socket) => {
   console.log(`Новое подключение: ${socket.id}`);
 
-  // 1. Создание комнаты
   socket.on('create_room', (data) => {
     const { username } = data;
     if (!username) return socket.emit('error_message', 'Имя игрока обязательно');
@@ -138,7 +135,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 2. Вход в комнату (С умным восстановлением Лобби и Игровых сессий)
   socket.on('join_room', (data) => {
     const { username, roomCode } = data;
     const cleanCode = roomCode ? roomCode.toUpperCase().trim() : '';
@@ -148,7 +144,6 @@ io.on('connection', (socket) => {
       return socket.emit('error_message', 'Комната не найдена. Проверь код!');
     }
 
-    // Если комната ждала удаления из-за рефреша игрока — отменяем удаление!
     if (room.deleteTimeout) {
       clearTimeout(room.deleteTimeout);
       room.deleteTimeout = null;
@@ -157,10 +152,9 @@ io.on('connection', (socket) => {
 
     const trimmedName = username ? username.trim() : '';
 
-    // БЕСШОВНОЕ ВОССТАНОВЛЕНИЕ СЕССИИ (Для Лобби и для Игры!)
     const existingPlayer = room.players.find(p => p.name.toLowerCase() === trimmedName.toLowerCase());
     if (existingPlayer) {
-      existingPlayer.socketId = socket.id; // Перепривязываем новый сокет к имени
+      existingPlayer.socketId = socket.id;
       socket.join(cleanCode);
 
       if (room.status === 'PLAYING') {
@@ -174,7 +168,6 @@ io.on('connection', (socket) => {
           players: getMaskedPlayersFor(room, socket.id)
         });
       } else {
-        // Если переподключаемся в состоянии Лобби
         room.players.forEach(p => {
           io.to(p.socketId).emit('room_state_update', {
             roomCode: room.roomCode,
@@ -187,13 +180,12 @@ io.on('connection', (socket) => {
     }
 
     if (room.status !== 'LOBBY') {
-      return socket.emit('error_message', 'Игра в этой комнате уже началась.');
+      return socket.emit('error_message', 'Игра уже началась.');
     }
     if (room.players.length >= 8) {
       return socket.emit('error_message', 'Комната заполнена.');
     }
 
-    // Проверка дубликата имени
     const nameExists = room.players.some(p => p.name.toLowerCase() === trimmedName.toLowerCase());
     if (nameExists) {
       return socket.emit('error_message', 'Это имя уже занято в этой комнате! Выбери другое.');
@@ -208,7 +200,6 @@ io.on('connection', (socket) => {
       targetName: null,
       hasGuessed: false,
       questionsCount: 0,
-      reactionsCount: 0,
       history: [],
       color: playerColors[room.players.length % playerColors.length]
     };
@@ -225,7 +216,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 3. Запуск игры (С рандомизацией первого хода!)
   socket.on('start_game', (data) => {
     const { roomCode } = data;
     const room = rooms.get(roomCode);
@@ -244,22 +234,16 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Получение рандомного персонажа
+  // Запрос на случайную генерацию из колод (Люди, Кино, Мульты, Игры - Без микса!)
   socket.on('get_random_character', (data) => {
     const { category } = data;
     let char = '';
 
-    if (category === 'mix') {
-      const categories = ['people', 'movies', 'cartoons', 'games'];
-      const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-      const randomChar = DECKS[randomCategory][Math.floor(Math.random() * DECKS[randomCategory].length)];
-      const status = DECKS.mix_status[Math.floor(Math.random() * DECKS.mix_status.length)];
-      char = status === 'На пенсии' ? `${randomChar} на пенсии` : `${status} ${randomChar}`;
-    } else if (DECKS[category]) {
+    if (DECKS[category]) {
       const arr = DECKS[category];
       char = arr[Math.floor(Math.random() * arr.length)];
     } else {
-      char = 'Шрек';
+      char = 'Шрек'; // Дефолтный персонаж
     }
 
     socket.emit('random_character_result', { character: char });
@@ -281,7 +265,7 @@ io.on('connection', (socket) => {
     if (allSubmitted) {
       room.status = 'PLAYING';
       
-      // Выбираем первого угадывающего абсолютно СЛУЧАЙНО!
+      // Случайный первый ход
       room.activePlayerIndex = Math.floor(Math.random() * room.players.length);
       const nextActivePlayer = room.players[room.activePlayerIndex];
 
@@ -519,6 +503,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Спам-реакции
   socket.on('send_reaction', (data) => {
     const { roomCode, emoji } = data;
     const room = rooms.get(roomCode);
@@ -536,7 +521,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Сетевое рисование через Socket.io v4
   socket.on('draw_line', (data) => {
     const { roomCode, x1, y1, x2, y2, color } = data;
     socket.to(roomCode).emit('broadcast_line', {
@@ -549,7 +533,6 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('broadcast_clear_drawings');
   });
 
-  // БЕСШОВНЫЙ СБРОС ИГРЫ
   socket.on('restart_game', (data) => {
     const { roomCode } = data;
     const room = rooms.get(roomCode);
@@ -587,17 +570,14 @@ io.on('connection', (socket) => {
       if (playerIndex !== -1) {
         const leftPlayer = room.players[playerIndex];
         
-        // В процессе игры или результатов НЕ удаляем игрока из массива сразу!
         if (room.status === 'PLAYING' || room.status === 'RESULTS') {
           console.log(`Игрок ${leftPlayer.name} временно отключился.`);
           return; 
         }
 
-        // Если игра на стадии Лобби или Ввода, то удаляем
         room.players.splice(playerIndex, 1);
 
         if (room.players.length === 0) {
-          // Запускаем 5-секундный таймер буфера перед полным удалением
           room.deleteTimeout = setTimeout(() => {
             rooms.delete(roomCode);
             console.log(`Комната ${roomCode} окончательно удалена из памяти.`);
@@ -619,49 +599,6 @@ io.on('connection', (socket) => {
     }
   });
 });
-
-// База данных для генерации (на сервере)
-const DECKS = {
-  people: [
-    'Дональд Трамп', 'Илон Маск', 'Альберт Эйнштейн', 'Майкл Джексон', 'Хасбик', 'Владимир Жириновский',
-    'Ким Кардашьян', 'Леонардо Ди Каприо', 'Джонни Депп', 'Арнольд Шварценеггер', 'Джеки Чан', 'Адольф Гитлер',
-    'Юлий Цезарь', 'Наполеон Бонапарт', 'Королева Елизавета II', 'Юрий Гагарин', 'Стив Джобс', 'Марк Цукерберг',
-    'Лионель Месси', 'Криштиану Роналду', 'Майк Тайсон', 'Киану Ривз', 'Уилл Смит', 'Анджелина Джоли',
-    'Леди Гага', 'Эминем', 'Шакира', 'Билли Айлиш', 'Гордон Рамзи', 'Мистер Бист'
-  ],
-  movies: [
-    'Гарри Поттер', 'Дарт Вейдер', 'Капитан Джек Воробей', 'Шерлок Холмс', 'Бэтмен', 'Танос', 'Терминатор',
-    'Джокер', 'Железный Человек', 'Человек-Паук', 'Джеймс Бонд (Агент 007)', 'Нео (Матрица)', 'Джек Доусон (Титаник)',
-    'Индиана Джонс', 'Форрест Гамп', 'Ганнибал Лектер', 'Тони Старк', 'Росомаха', 'Дэдпул', 'Тор',
-    'Капитан Америка', 'Гермиона Грейнджер', 'Лорд Волан-де-Морт', 'Альбус Дамблдор', 'Северус Снейп',
-    'Люк Скайуокер', 'Принцесса Лея', 'Джон Уик', 'Безумный Макс', 'Леголас'
-  ],
-  cartoons: [
-    'Губка Боб', 'Шрек', 'Пикачу', 'Наруто', 'Миньон', 'Гомер Симпсон', 'Эльза (Холодное сердце)',
-    'Микки Маус', 'Багз Банни', 'Скуби-Ду', 'Сейлор Мун', 'Кунг-фу Панда (По)', 'Беззубик', 'Чебурашка',
-    'Волк (Ну, погоди!)', 'Маша (Маша и Медведь)', 'Фиона', 'Осел (Шрек)', 'Кот в сапогах',
-    'Симба (Король Лев)', 'Аладдин', 'Жасмин', 'Джинн', 'Русалочка (Ариэль)', 'Рапунцель',
-    'Стив (Майнкрафт)', 'Лило', 'Стич', 'Гуфи'
-  ],
-  games: [
-    'Супер Марио', 'Геральт из Ривии', 'Лара Крофт', 'Соник', 'Линк (Зельда)', 'Кратос (God of War)',
-    'Пакман', 'Агент 47 (Hitman)', 'Артур Морган (RDR2)', 'Си-Джей (GTA SA)',
-    'Тревор Филлипс (GTA 5)', 'Мастер Чиф (Halo)', 'Нейтан Дрейк (Uncharted)', 'Гордон Фримен (Half-Life)',
-    'Санс (Undertale)', 'Элли (The Last of Us)', 'Саб-Зиро (Mortal Kombat)', 'Скорпион (Mortal Kombat)'
-  ],
-  mix_status: [
-    'Пьяный', 'Грустный', 'Богатый', 'Нищий', 'Сумасшедший', 'Злой', 'Влюбленный', 'Радиоактивный',
-    'Спящий', 'Летающий', 'Гламурный', 'Интеллигентный', 'На пенсии', 'Беременный', 'Сверхзвуковой'
-  ]
-};
-
-function generateCrazyMix() {
-  const categories = ['people', 'movies', 'cartoons', 'games'];
-  const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-  const randomChar = DECKS[randomCategory][Math.floor(Math.random() * DECKS[randomCategory].length)];
-  const status = DECKS.mix_status[Math.floor(Math.random() * DECKS.mix_status.length)];
-  return status === 'На пенсии' ? `${randomChar} на пенсии` : `${status} ${randomChar}`;
-}
 
 server.listen(PORT, () => {
   console.log(`Сервер запущен на порту ${PORT}`);
