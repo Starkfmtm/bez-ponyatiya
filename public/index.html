@@ -4,9 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Без Понятия!</title>
+  <!-- Подключение Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Подключение клиентской библиотеки Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
+  <!-- Подключение Howler.js для звуков -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+  <!-- Подключение шрифтов -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   
   <style>
@@ -156,7 +160,7 @@
   </main>
 
   <!-- ============================================== -->
-  <!-- ЭКРАН 3: ЗАГАДЫВАНИЕ ПЕРСОНАЖЕЙ                -->
+  <!-- ЭКРАН 3: ЗАГАДЫВАНИЕ (ВВОД СЛОВ)               -->
   <!-- ============================================== -->
   <main id="screen-input" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative overflow-hidden hidden z-10 transition-all duration-300 transform opacity-0 scale-95">
     <div class="absolute top-0 left-0 w-full h-3 bg-black/40"><div id="timer-bar" class="h-full bg-pink-500 transition-all duration-1000 ease-linear" style="width: 100%;"></div></div>
@@ -191,7 +195,6 @@
         <div id="target-player-display" class="inline-block bg-pink-500 border-4 border-black px-6 py-2 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1.5deg]">---</div>
       </div>
       <div class="transform rotate-[-0.5deg]">
-        <!-- Лимит увеличен до 60! -->
         <input type="text" id="character-input" maxlength="60" placeholder="Например: Дональд Трамп" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-yellow-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
       </div>
       <div class="space-y-3">
@@ -274,7 +277,7 @@
         <div class="flex justify-center relative">
           <div class="absolute w-28 h-28 bg-indigo-900/50 rounded-full border-4 border-dashed border-indigo-800/60 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
           <div class="w-28 h-28 relative z-10 animate-wiggle">
-            <img src="mascot.png" draggable="false" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот ожидания">
+            <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот ожидания">
           </div>
         </div>
         <div class="space-y-1">
@@ -321,7 +324,7 @@
         </div>
       </div>
 
-      <!-- 2. Активная история вопросов текущего угадывающего -->
+      <!-- 2. ...История вопросов текущего угадывающего -->
       <div id="game-history-block">
         <h3 id="game-history-title" class="text-xs font-black uppercase text-yellow-300 tracking-wider mb-2">История его вопросов:</h3>
         <div id="game-history-log" class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-2 max-h-48 overflow-y-auto hidden">
@@ -354,12 +357,10 @@
       </h1>
     </header>
 
-    <!-- СЕКЦИЯ ДЖЕКБОКС-АЧИВОК И НАГРАД (Новое!) -->
+    <!-- СЕКЦИЯ ДЖЕКБОКС-АЧИВОК -->
     <section id="achievements-section" class="bg-indigo-950/80 border-4 border-black p-4 rounded-2xl transform rotate-[-0.5deg] mb-6 space-y-3 hidden">
       <h3 class="text-xs font-black uppercase text-yellow-400 tracking-widest text-center border-b-2 border-black/40 pb-2">🎖️ Безумные грамоты партии 🎖️</h3>
-      <div id="achievements-list" class="text-xs font-bold text-white space-y-2">
-        <!-- Наполняется динамически -->
-      </div>
+      <div id="achievements-list" class="text-xs font-bold text-white space-y-2"></div>
     </section>
 
     <section id="results-list" class="space-y-4 mb-8"></section>
@@ -375,6 +376,14 @@
   </main>
 
   <script>
+    // Инициализация базы данных персонажей (на самом верху скрипта)
+    const famousCharacters = [
+      'Губка Боб', 'Шрек', 'Пикачу', 'Наруто', 'Миньон', 'Гомер Симпсон', 'Эльза',
+      'Дональд Трамп', 'Илон Маск', 'Майкл Джексон', 'Альберт Эйнштейн', 'Хасбик', 'Терминатор',
+      'Человек-Паук', 'Гарри Поттер', 'Дарт Вейдер', 'Капитан Джек Воробей', 'Шерлок Холмс', 'Бэтмен', 'Танос',
+      'Санта Клаус', 'Мона Лиза', 'Граф Дракула', 'Баба Яга', 'Агент 007'
+    ];
+
     const socket = io();
 
     // ==============================================
@@ -455,13 +464,13 @@
     }
 
     // ==============================================
-    // АВТО-ВОССТАНОВЛЕНИЕ СЕССИИ (РЕКОННЕКТ)
+    // АВТО-ВОССТАНОВЛЕНИЕ СЕССИИ (РЕКОННЕКТ ПРИ ВЫЛЕТАХ)
     // ==============================================
     socket.on('connect', () => {
       const savedName = sessionStorage.getItem('username');
       const savedRoom = sessionStorage.getItem('roomCode');
       if (savedName && savedRoom) {
-        console.log("Попытка восстановить сессию:", savedName);
+        console.log("Попытка восстановить игровую сессию для:", savedName);
         socket.emit('join_room', { username: savedName, roomCode: savedRoom });
       }
     });
@@ -525,7 +534,7 @@
     const btnRestart = document.getElementById('btn-restart');
     const btnMainMenu = document.getElementById('btn-main-menu');
 
-    // ПЛАВНЫЕ ПЕРЕХОДЫ МЕЖДУ ЭКРАНАМИ
+    // ПЛАВНЫЕ ПЕРЕХОДЫ МЕЖДУ ЭКРАНАМИ (По джекбоксу)
     function showScreen(targetScreen) {
       const screens = [screenWelcome, screenLobby, screenInput, screenGame, screenResults];
       const currentScreen = screens.find(s => !s.classList.contains('hidden'));
@@ -537,7 +546,7 @@
         setTimeout(() => {
           currentScreen.classList.add('hidden');
           targetScreen.classList.remove('hidden');
-          targetScreen.offsetHeight; 
+          targetScreen.offsetHeight; // Триггер перерисовки
           targetScreen.classList.add('opacity-100', 'scale-100');
           targetScreen.classList.remove('opacity-0', 'scale-95');
         }, 300);
@@ -561,7 +570,7 @@
       const name = usernameInput.value.trim();
       if (!name) return showToast('Имя введи!', 3000, false);
       myName = name;
-      sessionStorage.setItem('username', name); 
+      sessionStorage.setItem('username', name); // Сохраняем имя для автореконнекта
       socket.emit('create_room', { username: name });
     });
 
@@ -583,7 +592,7 @@
       socket.emit('start_game', { roomCode: currentRoomCode });
     });
 
-    // КЛИК: Запрос рандома из конкретной колоды (Новое!)
+    // КЛИК: Запрос рандома из конкретной колоды
     window.getRandomCharacter = function(category) {
       playSound('click');
       socket.emit('get_random_character', { category });
@@ -663,7 +672,7 @@
       socket.emit('restart_game', { roomCode: currentRoomCode });
     });
 
-    // ВЫХОД И ПЕРЕЗАПУСК
+    // ВЫХОД ИЗ ИГРЫ И В МЕНЮ (С полной очисткой sessionStorage!)
     btnLeave.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
     btnMainMenu.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
 
@@ -765,7 +774,7 @@
         showScreen(screenResults);
         updateResultsUI(data.players);
 
-        // Отрисовка ачивок в конце игры (Новое!)
+        // Отрисовка ачивок в конце игры
         const achSection = document.getElementById('achievements-section');
         const achList = document.getElementById('achievements-list');
         achList.innerHTML = '';
@@ -840,7 +849,13 @@
         playSound('incorrect');
       }
 
+      // Разблокируем кнопки угадывающего, так как раунд голосования завершился!
       if (socket.id === activePlayerId) {
+        document.getElementById('btn-ask').disabled = false;
+        document.getElementById('btn-guess-attempt').disabled = false;
+        document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
+        document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
+
         const verdictText = document.getElementById('vote-verdict-text');
         verdictText.classList.remove('hidden');
 
@@ -896,7 +911,7 @@
       document.getElementById('btn-guess-attempt').disabled = true;
     });
 
-    // СОКЕТ: Прием летящей эмодзи-реакции на экран с ником! (Исправлено!)
+    // СОКЕТ: Прием летящей эмодзи-реакции на экран с ником!
     socket.on('broadcast_reaction', (data) => {
       const { emoji, senderName } = data;
       const container = document.getElementById('reaction-container');
@@ -1204,8 +1219,12 @@
     }
     window.clearBgCanvas = clearBgCanvas;
 
+    // Очистка сессии от старой мертвой комнаты при сокетных ошибках (Решает зависание Создать игру!)
     socket.on('error_message', (message) => {
       showToast(message, 3000, false);
+      if (message.includes('не найдена') || message.includes('уже началась')) {
+        sessionStorage.removeItem('roomCode'); // Очищаем отравленный токен
+      }
     });
   </script>
 </body>
