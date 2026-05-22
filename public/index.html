@@ -4,11 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Без Понятия!</title>
-  <!-- Подключение Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Подключение клиентской библиотеки Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
-  <!-- Подключение шрифтов -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   
   <style>
@@ -158,7 +156,7 @@
   </main>
 
   <!-- ============================================== -->
-  <!-- ЭКРАН 3: ЗАГАДЫВАНИЕ (ВВОД СЛОВ)               -->
+  <!-- ЭКРАН 3: ЗАГАДЫВАНИЕ ПЕРСОНАЖЕЙ                -->
   <!-- ============================================== -->
   <main id="screen-input" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative overflow-hidden hidden z-10 transition-all duration-300 transform opacity-0 scale-95">
     <div class="absolute top-0 left-0 w-full h-3 bg-black/40"><div id="timer-bar" class="h-full bg-pink-500 transition-all duration-1000 ease-linear" style="width: 100%;"></div></div>
@@ -175,17 +173,28 @@
       </div>
     </div>
 
-    <section id="input-form-zone" class="space-y-6">
+    <!-- ВЫБОР ГОТОВОЙ КАТЕГОРИИ (Колоды) -->
+    <div class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black space-y-2 text-center mb-4 transform rotate-[0.5deg]">
+      <p class="text-[10px] font-black uppercase text-yellow-300 tracking-wider">🎲 Лень придумывать? Выбери колоду:</p>
+      <div class="grid grid-cols-5 gap-1 text-[10px] font-black">
+        <button onclick="getRandomCharacter('people')" class="bg-indigo-900 hover:bg-yellow-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all">ЛЮДИ</button>
+        <button onclick="getRandomCharacter('movies')" class="bg-indigo-900 hover:bg-pink-500 p-1.5 rounded-lg border-2 border-black transition-all">КИНО</button>
+        <button onclick="getRandomCharacter('cartoons')" class="bg-indigo-900 hover:bg-cyan-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all">МУЛЬТ</button>
+        <button onclick="getRandomCharacter('games')" class="bg-indigo-900 hover:bg-green-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all">ИГРЫ</button>
+        <button onclick="getRandomCharacter('mix')" class="bg-pink-500 p-1.5 rounded-lg border-2 border-black animate-pulse hover:bg-pink-400 transition-all">МИКС🔥</button>
+      </div>
+    </div>
+
+    <section id="input-form-zone" class="space-y-4">
       <div class="text-center">
-        <p class="text-sm font-black uppercase tracking-wider text-indigo-200 mb-2">Придумай персонажа для игрока:</p>
+        <p class="text-sm font-black uppercase tracking-wider text-indigo-200 mb-1">Придумай персонажа для игрока:</p>
         <div id="target-player-display" class="inline-block bg-pink-500 border-4 border-black px-6 py-2 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1.5deg]">---</div>
       </div>
       <div class="transform rotate-[-0.5deg]">
-        <!-- Лимит символов увеличен до 60, пример изменен на Трампа! -->
+        <!-- Лимит увеличен до 60! -->
         <input type="text" id="character-input" maxlength="60" placeholder="Например: Дональд Трамп" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-yellow-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
       </div>
       <div class="space-y-3">
-        <button id="btn-random" class="w-full bg-cyan-400 hover:bg-cyan-300 text-black font-black text-sm py-2 px-4 rounded-xl border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider">🎲 Случайный персонаж</button>
         <button id="btn-submit" class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider">Готово!</button>
       </div>
     </section>
@@ -333,7 +342,7 @@
     <div class="flex justify-center mb-6 relative">
       <div class="absolute w-36 h-36 bg-indigo-950/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="w-32 h-32 relative z-10 animate-winner">
-        <img id="results-mascot" src="mascot-happy.png" draggable="false" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот">
+        <img id="results-mascot" src="mascot-happy.png" draggable="false" class="w-full h-full object-contain" alt="Маскот">
       </div>
     </div>
 
@@ -344,6 +353,14 @@
         <span class="text-pink-500 text-4xl md:text-5xl inline-block rotate-[2deg] mt-1">ПОНЯТНО!</span>
       </h1>
     </header>
+
+    <!-- СЕКЦИЯ ДЖЕКБОКС-АЧИВОК И НАГРАД (Новое!) -->
+    <section id="achievements-section" class="bg-indigo-950/80 border-4 border-black p-4 rounded-2xl transform rotate-[-0.5deg] mb-6 space-y-3 hidden">
+      <h3 class="text-xs font-black uppercase text-yellow-400 tracking-widest text-center border-b-2 border-black/40 pb-2">🎖️ Безумные грамоты партии 🎖️</h3>
+      <div id="achievements-list" class="text-xs font-bold text-white space-y-2">
+        <!-- Наполняется динамически -->
+      </div>
+    </section>
 
     <section id="results-list" class="space-y-4 mb-8"></section>
 
@@ -361,7 +378,7 @@
     const socket = io();
 
     // ==============================================
-    // ГЕНЕРАТИВНЫЙ ЗВУКОВОЙ ДВИЖОК (Web Audio API)
+    // ГЕНЕРАТИВНЫЙ БЕЗОПАСНЫЙ ЗВУКОВОЙ ДВИЖОК
     // ==============================================
     let audioCtx = null;
 
@@ -385,7 +402,6 @@
       gain.connect(audioCtx.destination);
 
       if (type === 'click') {
-        // Мягкий клик
         osc.type = 'sine';
         osc.frequency.setValueAtTime(600, audioCtx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
@@ -395,21 +411,19 @@
         osc.stop(audioCtx.currentTime + 0.1);
       } 
       else if (type === 'correct') {
-        // Праздничный мажорный аккорд (Свист успеха)
         const now = audioCtx.currentTime;
         osc.type = 'triangle';
         gain.gain.setValueAtTime(0.2, now);
         gain.gain.linearRampToValueAtTime(0.01, now + 0.45);
 
-        osc.frequency.setValueAtTime(523.25, now); // C5
-        osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
-        osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
-        osc.frequency.setValueAtTime(1046.50, now + 0.24); // C6
+        osc.frequency.setValueAtTime(523.25, now); 
+        osc.frequency.setValueAtTime(659.25, now + 0.08); 
+        osc.frequency.setValueAtTime(783.99, now + 0.16); 
+        osc.frequency.setValueAtTime(1046.50, now + 0.24); 
         osc.start();
         osc.stop(now + 0.45);
       } 
       else if (type === 'incorrect') {
-        // Ретро-ошибка (Бузер)
         const now = audioCtx.currentTime;
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(130, now);
@@ -441,13 +455,13 @@
     }
 
     // ==============================================
-    // АВТО-ВОССТАНОВЛЕНИЕ СЕССИИ (РЕКОННЕКТ ПРИ ВЫЛЕТАХ)
+    // АВТО-ВОССТАНОВЛЕНИЕ СЕССИИ (РЕКОННЕКТ)
     // ==============================================
     socket.on('connect', () => {
       const savedName = sessionStorage.getItem('username');
       const savedRoom = sessionStorage.getItem('roomCode');
       if (savedName && savedRoom) {
-        console.log("Попытка восстановить игровую сессию для:", savedName);
+        console.log("Попытка восстановить сессию:", savedName);
         socket.emit('join_room', { username: savedName, roomCode: savedRoom });
       }
     });
@@ -483,7 +497,6 @@
     // Элементы Input-экрана
     const targetPlayerDisplay = document.getElementById('target-player-display');
     const characterInput = document.getElementById('character-input');
-    const btnRandom = document.getElementById('btn-random');
     const btnSubmit = document.getElementById('btn-submit');
     const inputFormZone = document.getElementById('input-form-zone');
     const waitingZone = document.getElementById('waiting-zone');
@@ -512,7 +525,7 @@
     const btnRestart = document.getElementById('btn-restart');
     const btnMainMenu = document.getElementById('btn-main-menu');
 
-    // ПЛАВНЫЕ ПЕРЕХОДЫ МЕЖДУ ЭКРАНАМИ (По джекбоксу)
+    // ПЛАВНЫЕ ПЕРЕХОДЫ МЕЖДУ ЭКРАНАМИ
     function showScreen(targetScreen) {
       const screens = [screenWelcome, screenLobby, screenInput, screenGame, screenResults];
       const currentScreen = screens.find(s => !s.classList.contains('hidden'));
@@ -534,6 +547,13 @@
         targetScreen.classList.remove('opacity-0', 'scale-95');
       }
     }
+
+    // Отправка вопроса по клавише Enter
+    document.getElementById('question-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('btn-ask').click();
+      }
+    });
 
     // КЛИК: Создать комнату
     btnCreate.addEventListener('click', () => {
@@ -563,11 +583,15 @@
       socket.emit('start_game', { roomCode: currentRoomCode });
     });
 
-    // КЛИК: Рандом
-    btnRandom.addEventListener('click', () => {
+    // КЛИК: Запрос рандома из конкретной колоды (Новое!)
+    window.getRandomCharacter = function(category) {
       playSound('click');
-      const randChar = famousCharacters[Math.floor(Math.random() * famousCharacters.length)];
-      characterInput.value = randChar;
+      socket.emit('get_random_character', { category });
+    };
+
+    // СОКЕТ: Получен результат рандома с сервера
+    socket.on('random_character_result', (data) => {
+      characterInput.value = data.character;
     });
 
     // ГОТОВО
@@ -639,14 +663,14 @@
       socket.emit('restart_game', { roomCode: currentRoomCode });
     });
 
-    // ВЫХОД
+    // ВЫХОД И ПЕРЕЗАПУСК
     btnLeave.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
     btnMainMenu.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
 
     // СОКЕТЫ: РЕГИСТРАЦИЯ
     socket.on('room_created', (data) => {
       currentRoomCode = data.roomCode;
-      sessionStorage.setItem('roomCode', currentRoomCode); 
+      sessionStorage.setItem('roomCode', currentRoomCode); // Сохраняем для реконнекта
       isHost = true;
       lobbyCodeDisplay.textContent = currentRoomCode;
       showScreen(screenLobby);
@@ -699,7 +723,7 @@
         document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
         document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
 
-        // Личная история игрока
+        // Отрисовка раздельных историй
         renderHistory(data.myPersonalHistory, myPersonalHistoryLog);
         renderHistory(data.activePlayerHistory, gameHistoryLog);
 
@@ -710,8 +734,8 @@
         if (socket.id === activePlayerId) {
           // МЫ УГАДЫВАЕМ
           gameHistoryTitle.textContent = "История твоих вопросов:";
-          reactionPanel.classList.add('hidden'); 
-          myPersonalHistoryBlock.classList.add('hidden'); 
+          reactionPanel.classList.add('hidden'); // Скрываем эмодзи
+          myPersonalHistoryBlock.classList.add('hidden'); // Скрываем блок "Моя история" (чтобы не дублировать)
 
           gameAnswererZone.classList.add('hidden');
           gameGuesserZone.classList.remove('hidden');
@@ -720,8 +744,8 @@
         } else {
           // МЫ ОТВЕЧАЕМ
           gameHistoryTitle.textContent = "История его вопросов:";
-          reactionPanel.classList.remove('hidden'); 
-          myPersonalHistoryBlock.classList.remove('hidden'); 
+          reactionPanel.classList.remove('hidden'); // Включаем реакции
+          myPersonalHistoryBlock.classList.remove('hidden'); // Показываем нашу личную историю в углу!
 
           gameAnswererZone.classList.remove('hidden');
           gameGuesserZone.classList.add('hidden');
@@ -740,6 +764,22 @@
         reactionPanel.classList.add('hidden');
         showScreen(screenResults);
         updateResultsUI(data.players);
+
+        // Отрисовка ачивок в конце игры (Новое!)
+        const achSection = document.getElementById('achievements-section');
+        const achList = document.getElementById('achievements-list');
+        achList.innerHTML = '';
+        
+        if (data.achievements && Object.keys(data.achievements).length > 0) {
+          achSection.classList.remove('hidden');
+          for (const [pName, medal] of Object.entries(data.achievements)) {
+            const item = document.createElement('p');
+            item.innerHTML = `🎖️ <span class="text-yellow-400 font-black">${pName}</span> — ${medal}`;
+            achList.appendChild(item);
+          }
+        } else {
+          achSection.classList.add('hidden');
+        }
       }
     });
 
@@ -759,6 +799,7 @@
         // Показываем счетчик и сбрасываем его перед голосованием!
         voteProgressStatus.classList.remove('hidden');
         votedCountDisplay.textContent = '0';
+        votersTotalDisplay.textContent = data.players ? (data.players.length - 1) : '1'; // Выставляем нормальный размер сразу!
 
         const buttons = document.querySelectorAll('#voting-buttons-grid button');
         buttons.forEach(btn => btn.disabled = false);
@@ -799,13 +840,7 @@
         playSound('incorrect');
       }
 
-      // Разблокируем кнопки угадывающего, так как раунд голосования завершился!
       if (socket.id === activePlayerId) {
-        document.getElementById('btn-ask').disabled = false;
-        document.getElementById('btn-guess-attempt').disabled = false;
-        document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
-        document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
-
         const verdictText = document.getElementById('vote-verdict-text');
         verdictText.classList.remove('hidden');
 
@@ -861,7 +896,7 @@
       document.getElementById('btn-guess-attempt').disabled = true;
     });
 
-    // СОКЕТ: Прием летящей эмодзи-реакции на экран с ником!
+    // СОКЕТ: Прием летящей эмодзи-реакции на экран с ником! (Исправлено!)
     socket.on('broadcast_reaction', (data) => {
       const { emoji, senderName } = data;
       const container = document.getElementById('reaction-container');
@@ -909,6 +944,7 @@
 
     // СОКЕТЫ ДЛЯ СЕТЕВОГО РИСОВАНИЯ
     socket.on('broadcast_line', (data) => {
+      // Переводим проценты обратно в пиксели нашего холста
       const x1 = data.x1 * bgCanvas.width;
       const y1 = data.y1 * bgCanvas.height;
       const x2 = data.x2 * bgCanvas.width;

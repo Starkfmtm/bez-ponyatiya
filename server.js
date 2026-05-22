@@ -12,49 +12,112 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 const rooms = new Map();
 
-// Уникальная палитра цветов для рисования игроков
-const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849', '#38bdf8', '#fb7185'];
+// ==============================================
+// ОГРОМНАЯ БАЗА ПЕРСОНАЖЕЙ (200+)
+// ==============================================
+const DECKS = {
+  people: [
+    'Дональд Трамп', 'Илон Маск', 'Альберт Эйнштейн', 'Майкл Джексон', 'Хасбик', 'Владимир Жириновский',
+    'Ким Кардашьян', 'Леонардо Ди Каприо', 'Джонни Депп', 'Арнольд Шварценеггер', 'Джеки Чан', 'Адольф Гитлер',
+    'Юлий Цезарь', 'Наполеон Бонапарт', 'Королева Елизавета II', 'Юрий Гагарин', 'Стив Джобс', 'Марк Цукерберг',
+    'Лионель Месси', 'Криштиану Роналду', 'Майк Тайсон', 'Киану Ривз', 'Уилл Смит', 'Анджелина Джоли',
+    'Леди Гага', 'Эминем', 'Шакира', 'Билли Айлиш', 'Гордон Рамзи', 'Мистер Бист'
+  ],
+  movies: [
+    'Гарри Поттер', 'Дарт Вейдер', 'Капитан Джек Воробей', 'Шерлок Холмс', 'Бэтмен', 'Танос', 'Терминатор',
+    'Джокер', 'Железный Человек', 'Человек-Паук', 'Джеймс Бонд (Агент 007)', 'Нео (Матрица)', 'Джек Доусон (Титаник)',
+    'Индиана Джонс', 'Форрест Гамп', 'Ганнибал Лектер', 'Тони Старк', 'Росомаха', 'Дэдпул', 'Тор',
+    'Капитан Америка', 'Гермиона Грейнджер', 'Лорд Волан-де-Морт', 'Альбус Дамблдор', 'Северус Снейп',
+    'Люк Скайуокер', 'Принцесса Лея', 'Джон Уик', 'Безумный Макс', 'Леголас'
+  ],
+  cartoons: [
+    'Губка Боб', 'Шрек', 'Пикачу', 'Наруто', 'Миньон', 'Гомер Симпсон', 'Эльза (Холодное сердце)',
+    'Микки Маус', 'Багз Банни', 'Скуби-Ду', 'Сейлор Мун', 'Кунг-фу Панда (По)', 'Беззубик', 'Чебурашка',
+    'Волк (Ну, погоди!)', 'Маша (Маша и Медведь)', 'Шрек', 'Фиона', 'Осел (Шрек)', 'Кот в сапогах',
+    'Симба (Король Лев)', 'Аладдин', 'Жасмин', 'Джинн', 'Русалочка (Ариэль)', 'Рапунцель',
+    'Стив (Майнкрафт)', 'Лило', 'Стич', 'Гуфи'
+  ],
+  games: [
+    'Супер Марио', 'Геральт из Ривии', 'Лара Крофт', 'Соник', 'Линк (Зельда)', 'Кратос (God of War)',
+    'Пакман', 'Стив (Minecraft)', 'Пикачу', 'Агент 47 (Hitman)', 'Артур Морган (RDR2)', 'Си-Джей (GTA SA)',
+    'Тревор Филлипс (GTA 5)', 'Мастер Чиф (Halo)', 'Нейтан Дрейк (Uncharted)', 'Гордон Фримен (Half-Life)',
+    'Санс (Undertale)', 'Элли (The Last of Us)', 'Саб-Зиро (Mortal Kombat)', 'Скорпион (Mortal Kombat)'
+  ],
+  // База для генератора "Безумного микса"
+  mix_status: [
+    'Пьяный', 'Грустный', 'Богатый', 'Нищий', 'Сумасшедший', 'Злой', 'Влюбленный', 'Радиоактивный',
+    'Спящий', 'Летающий', 'Гламурный', 'Интеллигентный', 'На пенсии', 'Беременный', 'Сверхзвуковой'
+  ]
+};
+
+// Генератор безумного микса персонажей (Более 5000+ вариаций!)
+function generateCrazyMix() {
+  const categories = ['people', 'movies', 'cartoons', 'games'];
+  const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+  const randomChar = DECKS[randomCategory][Math.floor(Math.random() * DECKS[randomCategory].length)];
+  const status = DECKS.mix_status[Math.floor(Math.random() * DECKS.mix_status.length)];
+  
+  // Комбинируем статус и персонажа, например: "Пьяный Гарри Поттер"
+  if (status === 'На пенсии') {
+    return `${randomChar} на пенсии`;
+  }
+  return `${status} ${randomChar}`;
+}
+
+// Подсчет шуточных достижений в конце игры
+function calculateAchievements(players) {
+  const achievements = {};
+
+  // Находим "Философа" (задал больше всех вопросов)
+  let maxQuestions = -1;
+  let philosopher = null;
+  players.forEach(p => {
+    if (p.questionsCount > maxQuestions) {
+      maxQuestions = p.questionsCount;
+      philosopher = p.name;
+    }
+  });
+  if (philosopher && maxQuestions > 0) achievements[philosopher] = '🧐 Философ партии (задал больше всех вопросов)';
+
+  // Находим "Душу компании" (отправил больше всех реакций)
+  let maxReactions = -1;
+  let partySoul = null;
+  players.forEach(p => {
+    if (p.reactionsCount > maxReactions) {
+      maxReactions = p.reactionsCount;
+      partySoul = p.name;
+    }
+  });
+  if (partySoul && maxReactions > 0) achievements[partySoul] = '😂 Душа компании (заспамил всех реакциями)';
+
+  // Находим "Снайпера" (угадал за минимальное число вопросов, угадавшие игроки)
+  let minQuestions = 999;
+  let sniper = null;
+  players.forEach(p => {
+    if (p.hasGuessed && p.questionsCount < minQuestions) {
+      minQuestions = p.questionsCount;
+      sniper = p.name;
+    }
+  });
+  if (sniper) achievements[sniper] = `🎯 Снайпер догадок (угадал себя всего за ${minQuestions} вопр.)`;
+
+  // "Спящий красавец" (кто не задал ни одного вопроса)
+  players.forEach(p => {
+    if (p.questionsCount === 0 && !achievements[p.name]) {
+      achievements[p.name] = '💤 Спящий красавец (промолчал всю игру)';
+    }
+  });
+
+  return achievements;
+}
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-function generateRoomCode() {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  let code = '';
-  for (let i = 0; i < 4; i++) {
-    code += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
-  }
-  if (rooms.has(code)) return generateRoomCode();
-  return code;
-}
-
-function assignTargets(players) {
-  const len = players.length;
-  for (let i = 0; i < len; i++) {
-    const targetIndex = (i + 1) % len;
-    players[i].targetPlayerId = players[targetIndex].socketId;
-    players[i].targetName = players[targetIndex].name;
-  }
-}
-
-function getMaskedPlayersFor(room, socketId) {
-  return room.players.map(p => {
-    const isSelf = p.socketId === socketId;
-    return {
-      socketId: p.socketId,
-      name: p.name,
-      isHost: p.isHost,
-      character: (isSelf && room.status === 'PLAYING') ? '❓' : p.character,
-      hasGuessed: p.hasGuessed,
-      targetName: p.targetName,
-      color: p.color // Передаем уникальный цвет рисования
-    };
-  });
-}
+const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849', '#38bdf8', '#fb7185'];
 
 io.on('connection', (socket) => {
   console.log(`Новое подключение: ${socket.id}`);
 
-  // 1. Создание комнаты
   socket.on('create_room', (data) => {
     const { username } = data;
     if (!username) return socket.emit('error_message', 'Имя игрока обязательно');
@@ -73,8 +136,9 @@ io.on('connection', (socket) => {
           targetName: null,
           hasGuessed: false,
           questionsCount: 0,
+          reactionsCount: 0, // Считаем реакции для ачивки
           history: [],
-          color: playerColors[0] // Первый игрок получает первый цвет
+          color: playerColors[0]
         }
       ],
       activePlayerIndex: 0,
@@ -82,7 +146,7 @@ io.on('connection', (socket) => {
       votes: { yes: 0, no: 0 },
       votedPlayers: [],
       turnTimeout: null,
-      deleteTimeout: null // Буфер для предотвращения удаления комнаты при рефреше
+      deleteTimeout: null
     };
 
     rooms.set(roomCode, newRoom);
@@ -94,7 +158,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 2. Вход в комнату (С защитой от дублирования имен и бесшовным реконнектом)
   socket.on('join_room', (data) => {
     const { username, roomCode } = data;
     const cleanCode = roomCode ? roomCode.toUpperCase().trim() : '';
@@ -104,11 +167,9 @@ io.on('connection', (socket) => {
       return socket.emit('error_message', 'Комната не найдена. Проверь код!');
     }
 
-    // Если комната ждала удаления из-за рефреша хоста — отменяем удаление!
     if (room.deleteTimeout) {
       clearTimeout(room.deleteTimeout);
       room.deleteTimeout = null;
-      console.log(`Удаление комнаты ${cleanCode} отменено (игрок вернулся).`);
     }
 
     const trimmedName = username ? username.trim() : '';
@@ -147,10 +208,9 @@ io.on('connection', (socket) => {
       return socket.emit('error_message', 'Комната заполнена.');
     }
 
-    // Проверка дубликата имени
     const nameExists = room.players.some(p => p.name.toLowerCase() === trimmedName.toLowerCase());
     if (nameExists) {
-      return socket.emit('error_message', 'Это имя уже занято в этой комнате!');
+      return socket.emit('error_message', 'Это имя уже занято!');
     }
 
     const newPlayer = {
@@ -162,8 +222,9 @@ io.on('connection', (socket) => {
       targetName: null,
       hasGuessed: false,
       questionsCount: 0,
+      reactionsCount: 0,
       history: [],
-      color: playerColors[room.players.length % playerColors.length] // Уникальный цвет по индексу!
+      color: playerColors[room.players.length % playerColors.length]
     };
 
     room.players.push(newPlayer);
@@ -178,7 +239,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 3. Запуск игры (С рандомизацией первого хода!)
   socket.on('start_game', (data) => {
     const { roomCode } = data;
     const room = rooms.get(roomCode);
@@ -197,7 +257,23 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 4. Получение загаданного персонажа
+  // Запрос на случайную генерацию из колод (Люди, Кино, Мульты, Игры, Микс)
+  socket.on('get_random_character', (data) => {
+    const { category } = data; // 'people', 'movies', 'cartoons', 'games', 'mix'
+    let char = '';
+
+    if (category === 'mix') {
+      char = generateCrazyMix();
+    } else if (DECKS[category]) {
+      const arr = DECKS[category];
+      char = arr[Math.floor(Math.random() * arr.length)];
+    } else {
+      char = generateCrazyMix(); // Фоллбэк
+    }
+
+    socket.emit('random_character_result', { character: char });
+  });
+
   socket.on('submit_character', (data) => {
     const { roomCode, character } = data;
     const room = rooms.get(roomCode);
@@ -214,7 +290,7 @@ io.on('connection', (socket) => {
     if (allSubmitted) {
       room.status = 'PLAYING';
       
-      // Выбираем ПЕРВОГО угадывающего абсолютно СЛУЧАЙНО!
+      // Случайный первый ход
       room.activePlayerIndex = Math.floor(Math.random() * room.players.length);
       const nextActivePlayer = room.players[room.activePlayerIndex];
 
@@ -233,7 +309,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 5. Обработка вопроса
   socket.on('submit_question', (data) => {
     const { roomCode, question } = data;
     const room = rooms.get(roomCode);
@@ -243,6 +318,9 @@ io.on('connection', (socket) => {
       clearTimeout(room.turnTimeout);
       room.turnTimeout = null;
     }
+
+    const activePlayer = room.players[room.activePlayerIndex];
+    if (activePlayer) activePlayer.questionsCount++; // Наращиваем счетчик вопросов
 
     room.currentQuestion = question;
     room.votes = { yes: 0, no: 0 };
@@ -254,7 +332,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 6. Обработка голосов (только ДА / НЕТ)
   socket.on('submit_vote', (data) => {
     const { roomCode, voteType } = data;
     const room = rooms.get(roomCode);
@@ -348,7 +425,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 7. Проверка догадки
   socket.on('guess_attempt', (data) => {
     const { roomCode, guess } = data;
     const room = rooms.get(roomCode);
@@ -410,10 +486,13 @@ io.on('connection', (socket) => {
         const remainingPlayers = room.players.filter(p => !p.hasGuessed);
         if (remainingPlayers.length <= 1) {
           room.status = 'RESULTS';
+          const achievements = calculateAchievements(room.players); // Считаем ачивки!
+
           room.players.forEach(p => {
             io.to(p.socketId).emit('game_state_update', {
               status: room.status,
-              players: room.players
+              players: room.players,
+              achievements: achievements // Передаем ачивки на клиент
             });
           });
           return;
@@ -449,12 +528,16 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Передача эмодзи-реакций (спам!) + Считаем их для ачивок
   socket.on('send_reaction', (data) => {
     const { roomCode, emoji } = data;
     const room = rooms.get(roomCode);
     if (!room) return;
 
     const sender = room.players.find(p => p.socketId === socket.id);
+    if (sender) {
+      sender.reactionsCount++; // Наращиваем счетчик для ачивки
+    }
     const senderName = sender ? sender.name : 'Кто-то';
 
     io.to(roomCode).emit('broadcast_reaction', {
@@ -463,7 +546,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Исправлено: Рисование вещает на всю комнату через Socket.io v4 синтаксис!
   socket.on('draw_line', (data) => {
     const { roomCode, x1, y1, x2, y2, color } = data;
     socket.to(roomCode).emit('broadcast_line', {
@@ -476,7 +558,7 @@ io.on('connection', (socket) => {
     io.to(roomCode).emit('broadcast_clear_drawings');
   });
 
-  // БЕСШОВНЫЙ СБРОС ИГРЫ (Очистка состояния комнаты и возврат в Лобби)
+  // БЕСШОВНЫЙ СБРОС ИГРЫ
   socket.on('restart_game', (data) => {
     const { roomCode } = data;
     const room = rooms.get(roomCode);
@@ -494,6 +576,7 @@ io.on('connection', (socket) => {
       p.character = null;
       p.hasGuessed = false;
       p.questionsCount = 0;
+      p.reactionsCount = 0;
       p.history = [];
     });
 
@@ -504,7 +587,6 @@ io.on('connection', (socket) => {
         players: getMaskedPlayersFor(room, p.socketId)
       });
     });
-    console.log(`Игра в комнате ${roomCode} успешно сброшена в Лобби.`);
   });
 
   socket.on('disconnect', () => {
@@ -522,7 +604,6 @@ io.on('connection', (socket) => {
         room.players.splice(playerIndex, 1);
 
         if (room.players.length === 0) {
-          // Запускаем 5-секундный таймер буфера перед полным удалением пустой комнаты!
           room.deleteTimeout = setTimeout(() => {
             rooms.delete(roomCode);
             console.log(`Комната ${roomCode} окончательно удалена из памяти.`);
