@@ -172,15 +172,14 @@
       </div>
     </div>
 
-    <!-- ВЫБОР ГОТОВОЙ КАТЕГОРИИ (Колоды) -->
+    <!-- ВЫБОР ГОТОВОЙ КАТЕГОРИИ (Колоды без МИКС!) -->
     <div class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black space-y-2 text-center mb-4 transform rotate-[0.5deg]">
       <p class="text-[10px] font-black uppercase text-yellow-300 tracking-wider">🎲 Лень придумывать? Выбери колоду:</p>
-      <div class="grid grid-cols-5 gap-1 text-[10px] font-black">
+      <div class="grid grid-cols-4 gap-1 text-[10px] font-black">
         <button onclick="getRandomCharacter('people')" class="bg-indigo-900 hover:bg-yellow-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all">ЛЮДИ</button>
         <button onclick="getRandomCharacter('movies')" class="bg-indigo-900 hover:bg-pink-500 p-1.5 rounded-lg border-2 border-black transition-all">КИНО</button>
         <button onclick="getRandomCharacter('cartoons')" class="bg-indigo-900 hover:bg-cyan-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all">МУЛЬТ</button>
         <button onclick="getRandomCharacter('games')" class="bg-indigo-900 hover:bg-green-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all">ИГРЫ</button>
-        <button onclick="getRandomCharacter('mix')" class="bg-pink-500 p-1.5 rounded-lg border-2 border-black animate-pulse hover:bg-pink-400 transition-all">МИКС🔥</button>
       </div>
     </div>
 
@@ -190,6 +189,7 @@
         <div id="target-player-display" class="inline-block bg-pink-500 border-4 border-black px-6 py-2 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1.5deg]">---</div>
       </div>
       <div class="transform rotate-[-0.5deg]">
+        <!-- Лимит 60, пример на Трампа -->
         <input type="text" id="character-input" maxlength="60" placeholder="Например: Дональд Трамп" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-yellow-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
       </div>
       <div class="space-y-3">
@@ -382,7 +382,7 @@
     const socket = io();
 
     // ==============================================
-    // ГЕНЕРАТИВНЫЙ БЕЗОПАСНЫЙ ЗВУКОВОЙ ДВИЖОК
+    // ГЕНЕРАТИВНЫЙ БЕЗОПАСНЫЙ ЗВУКОВОЙ ДВИЖОК (Web Audio API)
     // ==============================================
     let audioCtx = null;
 
@@ -541,7 +541,7 @@
         setTimeout(() => {
           currentScreen.classList.add('hidden');
           targetScreen.classList.remove('hidden');
-          targetScreen.offsetHeight; 
+          targetScreen.offsetHeight; // Триггер перерисовки
           targetScreen.classList.add('opacity-100', 'scale-100');
           targetScreen.classList.remove('opacity-0', 'scale-95');
         }, 300);
@@ -668,6 +668,7 @@
     });
 
     // ВЫХОД (Очищаем sessionStorage, чтобы не выбивало при рефреше на Welcome-экране!)
+    // Исправлен баг: btnRestart удален из обработчиков перезагрузки страницы!
     btnLeave.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
     btnMainMenu.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
 
@@ -855,7 +856,7 @@
         verdictText.classList.remove('hidden');
 
         if (isYes) {
-          verdictText.textContent = '🎉 Большинство ответило ДА! Задай еще вопрос.';
+          verdictText.textContent = '🎉  Большинство ответило ДА! Задай еще вопрос.';
           verdictText.className = 'text-xs font-black uppercase text-green-400 mt-2 animate-bounce';
           
           setTimeout(() => {
