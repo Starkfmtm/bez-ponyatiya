@@ -6,6 +6,7 @@
   <title>Без Понятия!</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   
   <style>
@@ -79,7 +80,6 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 1: ГЛАВНЫЙ ЭКРАН                         -->
   <!-- ============================================== -->
-  <!-- Кнопки изначально заблокированы под холодный старт Render -->
   <main id="screen-welcome" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative z-10 transition-all duration-300 transform opacity-100 scale-100">
     <header class="text-center mb-4 relative z-10">
       <h1 class="font-title text-4xl md:text-5xl font-black tracking-wider uppercase drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">
@@ -114,7 +114,7 @@
       <div class="space-y-3 transform rotate-[-1deg]">
         <div class="flex gap-2">
           <input type="text" id="room-code" maxlength="4" placeholder="КОД" class="w-1/3 bg-white text-black border-4 border-black text-xl p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-yellow-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
-          <button id="btn-join" disabled class="w-2/3 bg-indigo-950 opacity-50 cursor-not-allowed text-white font-black text-xl py-3 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider">Подключение...</button>
+          <button id="btn-join" disabled class="w-2/3 bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xl py-3 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider">Войти</button>
         </div>
       </div>
     </div>
@@ -175,7 +175,6 @@
     <!-- ВЫБОР ГОТОВОЙ КАТЕГОРИИ -->
     <div class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black space-y-2 text-center mb-4 transform rotate-[0.5deg]">
       <p class="text-[10px] font-black uppercase text-yellow-300 tracking-wider">🎲 Лень придумывать? Выбери колоду:</p>
-      <!-- Убран микс, пережато на 4 колонки! -->
       <div class="grid grid-cols-4 gap-1 text-[10px] font-black">
         <button onclick="getRandomCharacter('people')" class="bg-indigo-900 hover:bg-yellow-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all">ЛЮДИ</button>
         <button onclick="getRandomCharacter('movies')" class="bg-indigo-900 hover:bg-pink-500 p-1.5 rounded-lg border-2 border-black transition-all">КИНО</button>
@@ -190,7 +189,6 @@
         <div id="target-player-display" class="inline-block bg-pink-500 border-4 border-black px-6 py-2 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1.5deg]">---</div>
       </div>
       <div class="transform rotate-[-0.5deg]">
-        <!-- Лимит увеличен до 60! -->
         <input type="text" id="character-input" maxlength="60" placeholder="Например: Дональд Трамп" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-yellow-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
       </div>
       <div class="space-y-3">
@@ -278,7 +276,7 @@
         </div>
         <div class="space-y-1">
           <p class="text-xs font-black uppercase text-pink-500 animate-pulse">Твоя догадка отправлена на проверку!</p>
-          <p class="font-black text-sm text-white">Остальные игроки решают, засчитать ли твой ответ...</p>
+          <p class="font-black text-sm text-white animate-pulse">Остальные игроки решают, засчитать ли твой ответ...</p>
         </div>
       </div>
 
@@ -383,7 +381,7 @@
     const socket = io();
 
     // ==============================================
-    // ГЕНЕРАТИВНЫЙ БЕЗОПАСНЫЙ ЗВУКОВОЙ ДВИЖОК
+    // ГЕНЕРАТИВНЫЙ БЕЗОПАСНЫЙ ЗВУКОВОЙ ДВИЖОК (Web Audio API — 100% запуск без внешних сетей!)
     // ==============================================
     let audioCtx = null;
 
@@ -458,6 +456,28 @@
         toast.className = "fixed top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-black border-4 border-black px-6 py-3 rounded-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 transform scale-0 transition-all duration-300";
       }, duration);
     }
+
+    // ==============================================
+    // АВТО-ВОССТАНОВЛЕНИЕ СЕССИИ (РЕКОННЕКТ ПРИ ВЫЛЕТАХ)
+    // ==============================================
+    socket.on('connect', () => {
+      // Кнопки разблокируются, когда сокет окончательно подключился к серверу (Решает баг холодного старта!)
+      btnCreate.disabled = false;
+      btnJoin.disabled = false;
+      btnCreate.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-indigo-950');
+      btnJoin.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-indigo-950');
+      btnCreate.classList.add('bg-yellow-400', 'hover:bg-yellow-300', 'text-black');
+      btnJoin.classList.add('bg-cyan-400', 'hover:bg-cyan-300', 'text-black');
+      btnCreate.textContent = "Создать игру";
+      btnJoin.textContent = "Войти";
+
+      const savedName = sessionStorage.getItem('username');
+      const savedRoom = sessionStorage.getItem('roomCode');
+      if (savedName && savedRoom) {
+        console.log("Попытка восстановить игровую сессию для:", savedName);
+        socket.emit('join_room', { username: savedName, roomCode: savedRoom });
+      }
+    });
 
     let currentRoomCode = '';
     let myName = '';
@@ -548,26 +568,6 @@
       }
     });
 
-    // АКТИВАЦИЯ КНОПОК ПОСЛЕ ПОДКЛЮЧЕНИЯ СОКЕТА (Решает баг холодного старта Render!)
-    socket.on('connect', () => {
-      btnCreate.disabled = false;
-      btnJoin.disabled = false;
-      btnCreate.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-indigo-950');
-      btnJoin.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-indigo-950');
-      btnCreate.classList.add('bg-yellow-400', 'hover:bg-yellow-300', 'text-black');
-      btnJoin.classList.add('bg-cyan-400', 'hover:bg-cyan-300', 'text-black');
-      btnCreate.textContent = "Создать игру";
-      btnJoin.textContent = "Войти";
-
-      // Авто-восстановление сессии
-      const savedName = sessionStorage.getItem('username');
-      const savedRoom = sessionStorage.getItem('roomCode');
-      if (savedName && savedRoom) {
-        console.log("Попытка восстановить игровую сессию для:", savedName);
-        socket.emit('join_room', { username: savedName, roomCode: savedRoom });
-      }
-    });
-
     // КЛИК: Создать комнату
     btnCreate.addEventListener('click', () => {
       playSound('click');
@@ -596,13 +596,13 @@
       socket.emit('start_game', { roomCode: currentRoomCode });
     });
 
-    // КЛИК: Запрос рандома
+    // КЛИК: Запрос рандома из конкретной колоды
     window.getRandomCharacter = function(category) {
       playSound('click');
       socket.emit('get_random_character', { category });
     };
 
-    // СОКЕТ: Получен результат рандома
+    // СОКЕТ: Получен результат рандома с сервера
     socket.on('random_character_result', (data) => {
       characterInput.value = data.character;
     });
@@ -676,8 +676,8 @@
       socket.emit('restart_game', { roomCode: currentRoomCode });
     });
 
-    // ВЫХОД (Очищаем sessionStorage, чтобы не выбивало при рефреше!)
-    // Исправлен баг: btnRestart удален из обработчиков перезагрузки страницы!
+    // ВЫХОД ИЗ ИГРЫ И В МЕНЮ (С полной очисткой sessionStorage!)
+    // Исправлен баг: btnRestart удален из списка обработчиков релоада!
     btnLeave.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
     btnMainMenu.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
 
@@ -730,12 +730,6 @@
         // Сброс модалок
         document.getElementById('guess-verification-block').classList.add('hidden');
         document.getElementById('guess-waiting-block').classList.add('hidden');
-        
-        // Разблокируем кнопки угадывающего при новом ходе!
-        document.getElementById('btn-ask').disabled = false;
-        document.getElementById('btn-guess-attempt').disabled = false;
-        document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
-        document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
 
         // Отрисовка раздельных историй
         renderHistory(data.myPersonalHistory, myPersonalHistoryLog);
@@ -750,6 +744,12 @@
           gameHistoryTitle.textContent = "История твоих вопросов:";
           reactionPanel.classList.add('hidden'); // Скрываем эмодзи
           myPersonalHistoryBlock.classList.add('hidden'); // Скрываем блок "Моя история" (чтобы не дублировать)
+
+          // Разблокируем кнопки угадывающего перед началом ввода нового вопроса!
+          document.getElementById('btn-ask').disabled = false;
+          document.getElementById('btn-guess-attempt').disabled = false;
+          document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
+          document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
 
           gameAnswererZone.classList.add('hidden');
           gameGuesserZone.classList.remove('hidden');
@@ -854,13 +854,7 @@
         playSound('incorrect');
       }
 
-      // Разблокируем кнопки угадывающего, так как раунд голосования завершился!
       if (socket.id === activePlayerId) {
-        document.getElementById('btn-ask').disabled = false;
-        document.getElementById('btn-guess-attempt').disabled = false;
-        document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
-        document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
-
         const verdictText = document.getElementById('vote-verdict-text');
         verdictText.classList.remove('hidden');
 
@@ -872,6 +866,12 @@
             verdictText.classList.add('hidden');
             liveVotesResults.classList.add('hidden');
             questionInputBlock.classList.remove('hidden');
+            
+            // РАЗБЛОКИРУЕМ КНОПКИ ТОЛЬКО ПОСЛЕ ЗАВЕРШЕНИЯ АНИМАЦИИ ВЕРДИКТА! (Исправлено!)
+            document.getElementById('btn-ask').disabled = false;
+            document.getElementById('btn-guess-attempt').disabled = false;
+            document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
+            document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
           }, 3000);
         } else if (isTie) {
           verdictText.textContent = '🤷 Мнения разделились! Задай другой вопрос.';
@@ -881,8 +881,15 @@
             verdictText.classList.add('hidden');
             liveVotesResults.classList.add('hidden');
             questionInputBlock.classList.remove('hidden');
+
+            // РАЗБЛОКИРУЕМ КНОПКИ ТОЛЬКО ПОСЛЕ ЗАВЕРШЕНИЯ АНИМАЦИИ ВЕРДИКТА! (Исправлено!)
+            document.getElementById('btn-ask').disabled = false;
+            document.getElementById('btn-guess-attempt').disabled = false;
+            document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
+            document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
           }, 3000);
         } else {
+          // При ответе "НЕТ" кнопки вообще не разблокируются, так как раунд проигран и ход перейдет дальше! (Исправлено!)
           verdictText.textContent = '❌ Большинство ответило НЕТ. Ход переходит...';
           verdictText.className = 'text-xs font-black uppercase text-red-400 mt-2';
         }
