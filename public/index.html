@@ -4,13 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Без Понятия!</title>
-  <!-- Подключение Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Подключение клиентской библиотеки Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
-  <!-- Подключение Howler.js для звуков -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
-  <!-- Подключение шрифтов -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   
   <style>
@@ -49,7 +45,6 @@
     .animate-winner {
       animation: celebrate 2s ease-in-out infinite;
     }
-    /* Стили для летящих спам-реакций */
     .floating-emoji {
       position: fixed;
       bottom: 20px;
@@ -324,7 +319,7 @@
         </div>
       </div>
 
-      <!-- 2. ...История вопросов текущего угадывающего -->
+      <!-- 2. Активная история вопросов текущего угадывающего -->
       <div id="game-history-block">
         <h3 id="game-history-title" class="text-xs font-black uppercase text-yellow-300 tracking-wider mb-2">История его вопросов:</h3>
         <div id="game-history-log" class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-2 max-h-48 overflow-y-auto hidden">
@@ -546,7 +541,7 @@
         setTimeout(() => {
           currentScreen.classList.add('hidden');
           targetScreen.classList.remove('hidden');
-          targetScreen.offsetHeight; // Триггер перерисовки
+          targetScreen.offsetHeight; 
           targetScreen.classList.add('opacity-100', 'scale-100');
           targetScreen.classList.remove('opacity-0', 'scale-95');
         }, 300);
@@ -672,7 +667,7 @@
       socket.emit('restart_game', { roomCode: currentRoomCode });
     });
 
-    // ВЫХОД ИЗ ИГРЫ И В МЕНЮ (С полной очисткой sessionStorage!)
+    // ВЫХОД (Очищаем sessionStorage, чтобы не выбивало при рефреше на Welcome-экране!)
     btnLeave.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
     btnMainMenu.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
 
@@ -1219,7 +1214,7 @@
     }
     window.clearBgCanvas = clearBgCanvas;
 
-    // Очистка сессии от старой мертвой комнаты при сокетных ошибках (Решает зависание Создать игру!)
+    // Очистка сессии от старой мертвой комнаты при сокетных ошибках
     socket.on('error_message', (message) => {
       showToast(message, 3000, false);
       if (message.includes('не найдена') || message.includes('уже началась')) {
