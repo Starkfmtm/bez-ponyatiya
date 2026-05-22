@@ -175,7 +175,8 @@
         <div id="target-player-display" class="inline-block bg-pink-500 border-4 border-black px-6 py-2 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1.5deg]">---</div>
       </div>
       <div class="transform rotate-[-0.5deg]">
-        <input type="text" id="character-input" maxlength="30" placeholder="Например: Шрек" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-yellow-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+        <!-- Лимит символов увеличен до 60! -->
+        <input type="text" id="character-input" maxlength="60" placeholder="Например: Человек-паук на пенсии" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-yellow-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
       </div>
       <div class="space-y-3">
         <button id="btn-random" class="w-full bg-cyan-400 hover:bg-cyan-300 text-black font-black text-sm py-2 px-4 rounded-xl border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider">🎲 Случайный персонаж</button>
@@ -294,7 +295,7 @@
       </div>
     </section>
 
-    <!-- ДВЕ РАЗДЕЛЬНЫЕ ИСТОРИИ ВОПРОСОВ -->
+    <!-- ДВЕ РАЗДЕЛЬНЫЕ ИСТОРИИ ВОПРОСОВ (Переработана верстка!) -->
     <section class="mt-6 border-t-4 border-black/40 pt-4 space-y-4">
       
       <!-- 1. Моя персональная история (Видна ВСЕГДА) -->
@@ -351,6 +352,14 @@
   </main>
 
   <script>
+    // Инициализация базы данных персонажей (на самом верху скрипта)
+    const famousCharacters = [
+      'Губка Боб', 'Шрек', 'Пикачу', 'Наруто', 'Миньон', 'Гомер Симпсон', 'Эльза',
+      'Дональд Трамп', 'Илон Маск', 'Майкл Джексон', 'Альберт Эйнштейн', 'Хасбик', 'Терминатор',
+      'Человек-Паук', 'Гарри Поттер', 'Дарт Вейдер', 'Капитан Джек Воробей', 'Шерлок Холмс', 'Бэтмен', 'Танос',
+      'Санта Клаус', 'Мона Лиза', 'Граф Дракула', 'Баба Яга', 'Агент 007'
+    ];
+
     const socket = io();
 
     // ==============================================
@@ -364,8 +373,8 @@
 
     function playSound(sound) {
       if (sfx[sound]) {
-        sfx[sound].currentTime = 0;
-        sfx[sound].play().catch(e => console.log("Браузер заблокировал автовоспроизведение:", e));
+        sfx[sound].currentTime = 0; // Сбрасываем в начало для повторного клика
+        sfx[sound].play().catch(e => console.log("Браузер заблокировал автовоспроизведение до первого клика:", e));
       }
     }
 
@@ -466,17 +475,21 @@
       const currentScreen = screens.find(s => !s.classList.contains('hidden'));
       
       if (currentScreen && currentScreen !== targetScreen) {
+        // Затухание текущего
         currentScreen.classList.add('opacity-0', 'scale-95');
         currentScreen.classList.remove('opacity-100', 'scale-100');
         
         setTimeout(() => {
           currentScreen.classList.add('hidden');
+          
+          // Появление нового
           targetScreen.classList.remove('hidden');
-          targetScreen.offsetHeight; 
+          targetScreen.offsetHeight; // Триггер перерисовки
           targetScreen.classList.add('opacity-100', 'scale-100');
           targetScreen.classList.remove('opacity-0', 'scale-95');
         }, 300);
       } else {
+        // Самый первый запуск (без анимации затухания)
         targetScreen.classList.remove('hidden');
         targetScreen.classList.add('opacity-100', 'scale-100');
         targetScreen.classList.remove('opacity-0', 'scale-95');
@@ -496,7 +509,7 @@
       const name = usernameInput.value.trim();
       if (!name) return showToast('Имя введи!', 3000, false);
       myName = name;
-      sessionStorage.setItem('username', name); 
+      sessionStorage.setItem('username', name); // Сохраняем имя для автореконнекта
       socket.emit('create_room', { username: name });
     });
 
@@ -597,7 +610,7 @@
     // СОКЕТЫ: РЕГИСТРАЦИЯ
     socket.on('room_created', (data) => {
       currentRoomCode = data.roomCode;
-      sessionStorage.setItem('roomCode', currentRoomCode); 
+      sessionStorage.setItem('roomCode', currentRoomCode); // Сохраняем для реконнекта
       isHost = true;
       lobbyCodeDisplay.textContent = currentRoomCode;
       showScreen(screenLobby);
@@ -638,15 +651,15 @@
         document.getElementById('btn-ask').disabled = false;
         document.getElementById('btn-guess-attempt').disabled = false;
 
-        // Личная история игрока
+        // Отрисовка раздельных историй
         renderHistory(data.myPersonalHistory, myPersonalHistoryLog);
         renderHistory(data.activePlayerHistory, gameHistoryLog);
 
         if (socket.id === activePlayerId) {
           // МЫ УГАДЫВАЕМ
           gameHistoryTitle.textContent = "История твоих вопросов:";
-          reactionPanel.classList.add('hidden'); 
-          myPersonalHistoryBlock.classList.add('hidden'); 
+          reactionPanel.classList.add('hidden'); // Скрываем эмодзи
+          myPersonalHistoryBlock.classList.add('hidden'); // Скрываем блок "Моя история" (чтобы не дублировать)
 
           gameAnswererZone.classList.add('hidden');
           gameGuesserZone.classList.remove('hidden');
@@ -655,8 +668,8 @@
         } else {
           // МЫ ОТВЕЧАЕМ
           gameHistoryTitle.textContent = "История его вопросов:";
-          reactionPanel.classList.remove('hidden'); 
-          myPersonalHistoryBlock.classList.remove('hidden'); 
+          reactionPanel.classList.remove('hidden'); // Включаем реакции
+          myPersonalHistoryBlock.classList.remove('hidden'); // Показываем нашу личную историю в углу!
 
           gameAnswererZone.classList.remove('hidden');
           gameGuesserZone.classList.add('hidden');
@@ -681,6 +694,10 @@
     // СОКЕТ: Вопрос озвучен
     socket.on('question_broadcast', (data) => {
       lastAskedQuestion = data.question;
+
+      // ПРИНУДИТЕЛЬНО очищаем старые вердикты при выводе нового вопроса
+      const verdictText = document.getElementById('vote-verdict-text');
+      if (verdictText) verdictText.classList.add('hidden');
 
       if (socket.id !== activePlayerId) {
         // Мы отвечаем: Показываем вопрос и открываем кнопки ДА/НЕТ
@@ -980,9 +997,26 @@
     let lastX = 0;
     let lastY = 0;
 
-    // Палитра сочных неоновых цветов для кисти
-    const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849'];
-    const myBrushColor = playerColors[Math.floor(Math.random() * playerColors.length)];
+    // Уникальный цвет рисования (Присылается сервером для каждого игрока!)
+    let myBrushColor = '#facc15'; 
+
+    socket.on('room_created', (data) => {
+      const me = data.players.find(p => p.socketId === socket.id);
+      if (me && me.color) myBrushColor = me.color;
+      setupBrush();
+    });
+
+    socket.on('room_state_update', (data) => {
+      const me = data.players.find(p => p.socketId === socket.id);
+      if (me && me.color) myBrushColor = me.color;
+      setupBrush();
+    });
+
+    socket.on('game_state_update', (data) => {
+      const me = data.players.find(p => p.socketId === socket.id);
+      if (me && me.color) myBrushColor = me.color;
+      setupBrush();
+    });
 
     function resizeCanvas() {
       const tempCanvas = document.createElement('canvas');
@@ -1026,10 +1060,10 @@
       if (!isDrawingBg) return;
       const coords = getBgCoords(e);
 
-      // Локальная отрисовка сегмента линии
+      // Локальная отрисовка
       drawSegment(lastX, lastY, coords.x, coords.y, myBrushColor);
 
-      // Отправка координат сегмента на сервер в виде процентов!
+      // Сетевая отправка нормализованных координат на сервер
       if (currentRoomCode) {
         socket.emit('draw_line', {
           roomCode: currentRoomCode,
@@ -1049,7 +1083,6 @@
       isDrawingBg = false;
     }
 
-    // Универсальная функция отрисовки линии
     function drawSegment(x1, y1, x2, y2, color) {
       bgCtx.strokeStyle = color;
       bgCtx.lineWidth = 5;
@@ -1070,7 +1103,6 @@
     window.addEventListener('touchmove', drawBg);
     window.addEventListener('touchend', stopDrawBg);
 
-    // СЕТЕВОЕ ОЧИЩЕНИЕ (Стирает у всех)
     function clearBgCanvas() {
       if (currentRoomCode) {
         socket.emit('clear_drawings', { roomCode: currentRoomCode });

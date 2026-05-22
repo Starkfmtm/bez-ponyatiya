@@ -12,6 +12,9 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 const rooms = new Map();
 
+// Уникальная палитра цветов для рисования игроков
+const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849', '#38bdf8', '#fb7185'];
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 function generateRoomCode() {
@@ -42,7 +45,8 @@ function getMaskedPlayersFor(room, socketId) {
       isHost: p.isHost,
       character: (isSelf && room.status === 'PLAYING') ? '❓' : p.character,
       hasGuessed: p.hasGuessed,
-      targetName: p.targetName
+      targetName: p.targetName,
+      color: p.color // Передаем уникальный цвет рисования
     };
   });
 }
@@ -50,6 +54,7 @@ function getMaskedPlayersFor(room, socketId) {
 io.on('connection', (socket) => {
   console.log(`Новое подключение: ${socket.id}`);
 
+  // 1. Создание комнаты
   socket.on('create_room', (data) => {
     const { username } = data;
     if (!username) return socket.emit('error_message', 'Имя игрока обязательно');
@@ -57,7 +62,7 @@ io.on('connection', (socket) => {
     const roomCode = generateRoomCode();
     const newRoom = {
       roomCode,
-      status: 'LOBBY', // LOBBY, INPUTTING, PLAYING, RESULTS
+      status: 'LOBBY',
       players: [
         {
           socketId: socket.id,
@@ -68,14 +73,16 @@ io.on('connection', (socket) => {
           targetName: null,
           hasGuessed: false,
           questionsCount: 0,
-          history: [] 
+          history: [],
+          color: playerColors[0] // Первый игрок получает первый цвет
         }
       ],
       activePlayerIndex: 0,
       currentQuestion: null,
       votes: { yes: 0, no: 0 },
       votedPlayers: [],
-      turnTimeout: null
+      turnTimeout: null,
+      deleteTimeout: null // Буфер для предотвращения удаления комнаты при рефреше
     };
 
     rooms.set(roomCode, newRoom);
@@ -87,6 +94,7 @@ io.on('connection', (socket) => {
     });
   });
 
+  // 2. Вход в комнату (С защитой от дублирования имен и бесшовным реконнектом)
   socket.on('join_room', (data) => {
     const { username, roomCode } = data;
     const cleanCode = roomCode ? roomCode.toUpperCase().trim() : '';
@@ -94,6 +102,13 @@ io.on('connection', (socket) => {
 
     if (!room) {
       return socket.emit('error_message', 'Комната не найдена. Проверь код!');
+    }
+
+    // Если комната ждала удаления из-за рефреша хоста — отменяем удаление!
+    if (room.deleteTimeout) {
+      clearTimeout(room.deleteTimeout);
+      room.deleteTimeout = null;
+      console.log(`Удаление комнаты ${cleanCode} отменено (игрок вернулся).`);
     }
 
     const trimmedName = username ? username.trim() : '';
@@ -132,6 +147,12 @@ io.on('connection', (socket) => {
       return socket.emit('error_message', 'Комната заполнена.');
     }
 
+    // Проверка дубликата имени
+    const nameExists = room.players.some(p => p.name.toLowerCase() === trimmedName.toLowerCase());
+    if (nameExists) {
+      return socket.emit('error_message', 'Это имя уже занято в этой комнате!');
+    }
+
     const newPlayer = {
       socketId: socket.id,
       name: trimmedName,
@@ -141,7 +162,8 @@ io.on('connection', (socket) => {
       targetName: null,
       hasGuessed: false,
       questionsCount: 0,
-      history: []
+      history: [],
+      color: playerColors[room.players.length % playerColors.length] // Уникальный цвет по индексу!
     };
 
     room.players.push(newPlayer);
@@ -156,6 +178,7 @@ io.on('connection', (socket) => {
     });
   });
 
+  // 3. Запуск игры (С рандомизацией первого хода!)
   socket.on('start_game', (data) => {
     const { roomCode } = data;
     const room = rooms.get(roomCode);
@@ -174,6 +197,7 @@ io.on('connection', (socket) => {
     });
   });
 
+  // 4. Получение загаданного персонажа
   socket.on('submit_character', (data) => {
     const { roomCode, character } = data;
     const room = rooms.get(roomCode);
@@ -189,7 +213,9 @@ io.on('connection', (socket) => {
 
     if (allSubmitted) {
       room.status = 'PLAYING';
-      room.activePlayerIndex = 0;
+      
+      // Выбираем ПЕРВОГО угадывающего абсолютно СЛУЧАЙНО!
+      room.activePlayerIndex = Math.floor(Math.random() * room.players.length);
       const nextActivePlayer = room.players[room.activePlayerIndex];
 
       room.players.forEach(p => {
@@ -207,6 +233,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 5. Обработка вопроса
   socket.on('submit_question', (data) => {
     const { roomCode, question } = data;
     const room = rooms.get(roomCode);
@@ -227,6 +254,7 @@ io.on('connection', (socket) => {
     });
   });
 
+  // 6. Обработка голосов (только ДА / НЕТ)
   socket.on('submit_vote', (data) => {
     const { roomCode, voteType } = data;
     const room = rooms.get(roomCode);
@@ -320,6 +348,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 7. Проверка догадки
   socket.on('guess_attempt', (data) => {
     const { roomCode, guess } = data;
     const room = rooms.get(roomCode);
@@ -434,28 +463,25 @@ io.on('connection', (socket) => {
     });
   });
 
-  // СЕТЕВОЕ РИСОВАНИЕ: Передача координат линии всем игрокам
+  // Исправлено: Рисование вещает на всю комнату через Socket.io v4 синтаксис!
   socket.on('draw_line', (data) => {
     const { roomCode, x1, y1, x2, y2, color } = data;
-    // Транслируем линию всем остальным в комнате
-    socket.broadcast.to(roomCode).emit('broadcast_line', {
+    socket.to(roomCode).emit('broadcast_line', {
       x1, y1, x2, y2, color
     });
   });
 
-  // СЕТЕВОЕ ОЧИЩЕНИЕ РИСУНКОВ
   socket.on('clear_drawings', (data) => {
     const { roomCode } = data;
     io.to(roomCode).emit('broadcast_clear_drawings');
   });
 
-  // БЕСШОВНЫЙ ПЕРЕЗАПУСК ИГРЫ (Очистка состояния комнаты и возврат в Лобби)
+  // БЕСШОВНЫЙ СБРОС ИГРЫ (Очистка состояния комнаты и возврат в Лобби)
   socket.on('restart_game', (data) => {
     const { roomCode } = data;
     const room = rooms.get(roomCode);
     if (!room) return;
 
-    // Сброс комнаты в дефолтное лобби
     room.status = 'LOBBY';
     if (room.turnTimeout) clearTimeout(room.turnTimeout);
     room.turnTimeout = null;
@@ -464,7 +490,6 @@ io.on('connection', (socket) => {
     room.votedPlayers = [];
     room.activePlayerIndex = 0;
 
-    // Сброс игроков
     room.players.forEach(p => {
       p.character = null;
       p.hasGuessed = false;
@@ -472,7 +497,6 @@ io.on('connection', (socket) => {
       p.history = [];
     });
 
-    // Возвращаем абсолютно всех игроков в комнате на экран Лобби
     room.players.forEach(p => {
       io.to(p.socketId).emit('room_state_update', {
         roomCode: room.roomCode,
@@ -498,7 +522,11 @@ io.on('connection', (socket) => {
         room.players.splice(playerIndex, 1);
 
         if (room.players.length === 0) {
-          rooms.delete(roomCode);
+          // Запускаем 5-секундный таймер буфера перед полным удалением пустой комнаты!
+          room.deleteTimeout = setTimeout(() => {
+            rooms.delete(roomCode);
+            console.log(`Комната ${roomCode} окончательно удалена из памяти.`);
+          }, 5000);
         } else {
           if (leftPlayer.isHost) {
             room.players[0].isHost = true;
