@@ -4,9 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Без Понятия!</title>
+  <!-- Подключение Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Подключение клиентской библиотеки Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
+  <!-- Подключение Howler.js для звуков -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+  <!-- Подключение шрифтов -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
   
   <style>
@@ -61,19 +65,25 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 selection:bg-pink-500 selection:text-white relative overflow-x-hidden">
 
+  <!-- ПОЛНОЭКРАННАЯ ОБЩАЯ РИСОВАЛКА НА ПОЛЯХ СТРАНИЦЫ -->
   <canvas id="bg-drawing-canvas" class="fixed inset-0 z-0 cursor-crosshair"></canvas>
 
+  <!-- Кнопка очистки полноэкранного рисунка -->
   <button onclick="clearBgCanvas()" class="fixed bottom-4 left-4 bg-indigo-950/90 border-4 border-black text-white hover:text-pink-400 py-2.5 px-4 rounded-2xl z-30 font-black text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-y-[2px]">
     🧹 Стереть пометки
   </button>
 
+  <!-- УВЕДОМЛЕНИЯ (ТОСТЫ) -->
   <div id="game-toast" class="fixed top-4 left-1/2 -translate-x-1/2 bg-green-400 text-black border-4 border-black px-6 py-3 rounded-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 transform scale-0 transition-all duration-300">
     <span id="game-toast-text">Сообщение</span>
   </div>
 
+  <!-- КАРКАС ДЛЯ ЛЕТАЮЩИХ СПАМ-РЕАКЦИЙ -->
   <div id="reaction-container" class="absolute inset-0 pointer-events-none overflow-hidden z-40"></div>
 
-  <!-- ЭКРАН 1: ГЛАВНЫЙ -->
+  <!-- ============================================== -->
+  <!-- ЭКРАН 1: ГЛАВНЫЙ ЭКРАН                         -->
+  <!-- ============================================== -->
   <main id="screen-welcome" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative z-10 transition-all duration-300 transform opacity-100 scale-100">
     <header class="text-center mb-4 relative z-10">
       <h1 class="font-title text-4xl md:text-5xl font-black tracking-wider uppercase drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]">
@@ -92,11 +102,11 @@
     <div class="space-y-6 relative z-10">
       <div class="transform rotate-[-0.5deg]">
         <label for="username" class="block text-xs font-black uppercase tracking-widest text-yellow-300 mb-2 text-center">Представься, путник:</label>
-        <input type="text" id="username" maxlength="15" placeholder="Как тебя звать?" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-pink-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+        <input type="text" id="username" maxlength="15" placeholder="Как тебя звать, чучело?" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-pink-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
       </div>
 
       <div class="pt-2 transform rotate-[1deg]">
-        <button id="btn-create" disabled class="w-full bg-indigo-950 opacity-50 cursor-not-allowed text-white font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider">🔌 Подключение...</button>
+        <button id="btn-create" disabled class="w-full bg-indigo-950 opacity-50 cursor-not-allowed text-white font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider">🔌 Подключение к серверу...</button>
       </div>
 
       <div class="relative flex py-1 items-center">
@@ -108,17 +118,24 @@
       <div class="space-y-3 transform rotate-[-1deg]">
         <div class="flex gap-2">
           <input type="text" id="room-code" maxlength="4" placeholder="КОД" class="w-1/3 bg-white text-black border-4 border-black text-xl p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-yellow-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
-          <button id="btn-join" disabled class="w-2/3 bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xl py-3 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider">Войти</button>
+          <button id="btn-join" disabled class="w-2/3 bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xl py-3 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider">Войти</button>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- ЭКРАН 2: ЛОББИ -->
+  <!-- ============================================== -->
+  <!-- ЭКРАН 2: ЛОББИ (ОЖИДАНИЕ)                      -->
+  <!-- ============================================== -->
   <main id="screen-lobby" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden z-10 transition-all duration-300 transform opacity-0 scale-95">
     <header class="text-center mb-6">
       <span class="text-xs font-black uppercase tracking-widest text-indigo-300">Код твоей комнаты:</span>
       <div id="lobby-code-display" class="mt-1 inline-block bg-cyan-400 text-black border-4 border-black px-6 py-2 rounded-2xl font-title text-4xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[-1.5deg]">----</div>
+      <div class="mt-2">
+        <button onclick="copyRoomLink()" class="bg-indigo-950/80 border-2 border-black hover:text-yellow-300 text-xs text-indigo-200 px-3 py-1 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-[1px] active:shadow-none transition-all font-bold">
+          🔗 Скопировать ссылку-приглашение
+        </button>
+      </div>
     </header>
 
     <section class="mb-8">
@@ -131,7 +148,7 @@
 
     <div class="space-y-4">
       <div id="host-controls" class="transform rotate-[1deg] hidden">
-        <button id="btn-start" class="w-full bg-pink-500 hover:bg-pink-400 text-white font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider">Начать игру!</button>
+        <button id="btn-start" class="w-full bg-pink-500 hover:bg-pink-400 text-white font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider">Начать игру!</button>
         <p class="text-center text-xs font-bold text-yellow-300 mt-2">Нужно минимум 2 игрока для старта</p>
       </div>
       <div id="guest-status" class="hidden text-center p-4 bg-indigo-950/50 rounded-2xl border-4 border-black transform rotate-[-0.5deg]">
@@ -146,7 +163,9 @@
     </div>
   </main>
 
-  <!-- ЭКРАН 3: ЗАГАДЫВАНИЕ (ВВОД) -->
+  <!-- ============================================== -->
+  <!-- ЭКРАН 3: ЗАГАДЫВАНИЕ (ВВОД СЛОВ)               -->
+  <!-- ============================================== -->
   <main id="screen-input" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative overflow-hidden hidden z-10 transition-all duration-300 transform opacity-0 scale-95">
     <div class="absolute top-0 left-0 w-full h-3 bg-black/40"><div id="timer-bar" class="h-full bg-pink-500 transition-all duration-1000 ease-linear" style="width: 100%;"></div></div>
     
@@ -158,7 +177,7 @@
     <div class="flex justify-center mb-6 relative">
       <div class="absolute w-28 h-28 bg-indigo-950/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="w-28 h-28 relative z-10 animate-wiggle">
-        <img src="mascot.png" draggable="false" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот">
+        <img src="mascot.png" draggable="false" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот размышления">
       </div>
     </div>
 
@@ -168,6 +187,7 @@
         <div id="target-player-display" class="inline-block bg-pink-500 border-4 border-black px-6 py-2 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1.5deg]">---</div>
       </div>
 
+      <!-- ВЫБОР ГОТОВОЙ КАТЕГОРИИ -->
       <div class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black space-y-2 text-center transform rotate-[0.5deg]">
         <p class="text-[10px] font-black uppercase text-yellow-300 tracking-wider">🎲 Лень придумывать? Выбери колоду:</p>
         <div class="grid grid-cols-4 gap-1 text-[10px] font-black">
@@ -182,20 +202,28 @@
         <input type="text" id="character-input" maxlength="60" placeholder="Например: Дональд Трамп" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-yellow-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
       </div>
       <div class="space-y-3">
-        <button id="btn-submit" class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider">Готово!</button>
+        <button id="btn-submit" class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider">Готово!</button>
       </div>
     </section>
 
-    <section id="waiting-zone" class="hidden text-center py-8 space-y-6">
-      <div class="text-6xl animate-bounce">⏳</div>
-      <h2 class="font-title text-2xl font-black text-cyan-400 uppercase">Принято!</h2>
-      <p class="font-black text-base text-white">Теперь ждем остальных...</p>
+    <section id="waiting-zone" class="hidden text-center py-4 space-y-4">
+      <div class="text-5xl animate-bounce">⏳</div>
+      <h2 class="font-title text-xl font-black text-cyan-400 uppercase leading-none">Принято!</h2>
+      <p class="font-black text-xs text-indigo-200">Ожидаем остальных игроков:</p>
+      
+      <!-- Динамический список готовности -->
+      <div id="input-progress-list" class="bg-indigo-950/50 border-4 border-black rounded-2xl p-3 text-left max-h-40 overflow-y-auto space-y-1.5 text-xs font-bold">
+        <!-- Заполняется из JS -->
+      </div>
     </section>
   </main>
 
-  <!-- ЭКРАН 4: ИГРОВОЙ ПРОЦЕСС -->
+  <!-- ============================================== -->
+  <!-- ЭКРАН 4: ИГРОВОЙ ПРОЦЕСС                       -->
+  <!-- ============================================== -->
   <main id="screen-game" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden z-10 transition-all duration-300 transform opacity-0 scale-95">
 
+    <!-- Боковая панель быстрых реакций для отвечающих -->
     <div id="reaction-panel" class="absolute -left-12 top-1/2 -translate-y-1/2 flex flex-col gap-3 bg-indigo-950/80 p-2 rounded-2xl border-4 border-black z-30 hidden transition-all font-black">
       <button onclick="sendReaction('ГО!')" class="hover:scale-125 transition-transform text-lg bg-yellow-400 text-black border-2 border-black rounded-lg px-1.5 py-0.5">ГО!</button>
       <button onclick="sendReaction('😂')" class="hover:scale-125 transition-transform text-2xl">😂</button>
@@ -204,13 +232,16 @@
       <button onclick="sendReaction('😱')" class="hover:scale-125 transition-transform text-2xl">😱</button>
     </div>
 
+    <!-- Имя того, кто угадывает -->
     <div class="text-center mb-4">
       <span class="text-xs font-black uppercase tracking-widest text-indigo-300">Сейчас угадывает:</span>
       <h2 id="game-active-player" class="text-xl font-black text-yellow-300 uppercase tracking-wide">---</h2>
     </div>
 
-    <!-- Роль ОТВЕЧАЮЩЕГО -->
+    <!-- БЛОК А: Роль ОТВЕЧАЮЩЕГО -->
     <section id="game-answerer-zone" class="space-y-6 hidden">
+      
+      <!-- Проверка догадки игрока -->
       <div id="guess-verification-block" class="bg-yellow-400 text-black border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1deg] hidden space-y-4 font-black">
         <h3 class="font-title text-lg font-black uppercase text-center">Проверка догадки!</h3>
         <p class="text-sm font-bold text-center">
@@ -220,8 +251,8 @@
         <p class="text-xs font-black text-center uppercase tracking-wider">Настоящая роль: <span id="actual-role-display" class="bg-black text-white px-2 py-1 rounded">???</span></p>
         
         <div class="grid grid-cols-2 gap-2 pt-2">
-          <button onclick="submitGuessVerdict(true)" class="bg-green-400 hover:bg-green-300 border-2 border-black font-black text-sm py-2 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">✅ ЗАСЧИТАТЬ</button>
-          <button onclick="submitGuessVerdict(false)" class="bg-red-400 hover:bg-red-300 border-2 border-black font-black text-sm py-2 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">❌ ОТКЛОНИТЬ</button>
+          <button onclick="submitGuessVerdict(true)" class="bg-green-400 hover:bg-green-300 border-2 border-black font-black text-sm py-2 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transition-all">✅ ЗАСЧИТАТЬ</button>
+          <button onclick="submitGuessVerdict(false)" class="bg-red-400 hover:bg-red-300 border-2 border-black font-black text-sm py-2 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transition-all">❌ ОТКЛОНИТЬ</button>
         </div>
       </div>
 
@@ -230,33 +261,37 @@
         <div id="secret-character-display" class="inline-block bg-pink-500 border-4 border-black px-6 py-3 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[-1.5deg]">---</div>
       </div>
       
+      <!-- Текст вопроса -->
       <div class="bg-indigo-950/80 p-4 rounded-2xl border-4 border-black text-center transform rotate-[0.5deg]">
         <p class="text-xs font-black uppercase text-cyan-400 mb-1">Вопрос на лбу:</p>
         <p id="game-question-text" class="font-black text-lg text-white">Ожидаем вопрос...</p>
       </div>
 
+      <!-- Кнопки голосования (ДА и НЕТ) -->
       <div id="voting-buttons-grid" class="grid grid-cols-2 gap-4 pt-2 hidden">
-        <button onclick="sendVote('yes')" class="bg-green-400 hover:bg-green-300 text-black font-black text-xl py-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[-2deg] transition-all">👍 ДА!</button>
-        <button onclick="sendVote('no')" class="bg-red-500 hover:bg-red-400 text-white font-black text-xl py-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1.5deg] transition-all">👎 НЕТ!</button>
+        <button onclick="sendVote('yes')" class="bg-green-400 hover:bg-green-300 text-black font-black text-xl py-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transform rotate-[-2deg] transition-all">👍 ДА!</button>
+        <button onclick="sendVote('no')" class="bg-red-500 hover:bg-red-400 text-white font-black text-xl py-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transform rotate-[1.5deg] transition-all">👎 НЕТ!</button>
       </div>
       
       <div id="vote-progress-status" class="text-center text-xs font-bold text-indigo-300 hidden">
-        Проголосовало: <span id="voted-count-display">0</span>/<span id="voters-total-display">0</span>
+        Проголосовало: <span id="voted-count-display">0</span>/<span id="voted-total-display">0</span> // Второе исправление для надежности
       </div>
     </section>
 
-    <!-- Роль ОТГАДЫВАЮЩЕГО -->
+    <!-- БЛОК Б: Роль ОТГАДЫВАЮЩЕГО -->
     <section id="game-guesser-zone" class="space-y-6 hidden">
+      
+      <!-- Ожидание решения зала -->
       <div id="guess-waiting-block" class="bg-indigo-950/80 p-6 rounded-2xl border-4 border-black text-center hidden transform rotate-[-0.5deg] space-y-6">
         <div class="flex justify-center relative">
           <div class="absolute w-28 h-28 bg-indigo-900/50 rounded-full border-4 border-dashed border-indigo-800/60 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
           <div class="w-28 h-28 relative z-10 animate-wiggle">
-            <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот">
+            <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот ожидания">
           </div>
         </div>
         <div class="space-y-1">
           <p class="text-xs font-black uppercase text-pink-500 animate-pulse">Твоя догадка отправлена на проверку!</p>
-          <p class="font-black text-sm text-white">Остальные игроки решают, засчитать ли ответ...</p>
+          <p class="font-black text-sm text-white">Остальные игроки решают, засчитать ли твой ответ...</p>
         </div>
       </div>
 
@@ -270,6 +305,7 @@
         <input type="text" id="question-input" maxlength="50" placeholder="Например: Я реальный человек?" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-pink-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
       </div>
 
+      <!-- Результаты ответов в реальном времени -->
       <div id="live-votes-results" class="bg-indigo-950/80 p-4 rounded-2xl border-4 border-black text-center hidden">
         <p class="text-xs font-black uppercase text-yellow-300 mb-2">Голоса зала:</p>
         <div class="grid grid-cols-2 gap-1 text-sm font-black">
@@ -279,27 +315,45 @@
         <p id="vote-verdict-text" class="text-xs font-black uppercase text-white mt-2 hidden"></p>
       </div>
 
+      <!-- Кнопки угадывающего -->
       <div class="space-y-3 pt-2">
-        <button id="btn-ask" class="w-full bg-cyan-400 hover:bg-cyan-300 text-black font-black text-lg py-3 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider">📢 Отправить вопрос</button>
-        <button id="btn-guess-attempt" class="w-full bg-pink-500 hover:bg-pink-400 text-white font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider">🎯 Я знаю, кто я!</button>
+        <button id="btn-ask" class="w-full bg-cyan-400 hover:bg-cyan-300 text-black font-black text-lg py-3 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider">📢 Отправить вопрос</button>
+        <button id="btn-guess-attempt" class="w-full bg-pink-500 hover:bg-pink-400 text-white font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider">🎯 Я знаю, кто я!</button>
       </div>
     </section>
 
+    <!-- Панель управления хоста (Пропуск хода) -->
+    <div id="host-game-controls" class="hidden pt-2">
+      <button onclick="hostSkipTurn()" class="w-full bg-indigo-950 hover:bg-indigo-900 border-4 border-black text-red-400 hover:text-red-300 font-black text-xs py-2 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+        ⚠️ Пропустить ход текущего игрока (Хост-контроль)
+      </button>
+    </div>
+
+    <!-- ДВЕ РАЗДЕЛЬНЫЕ ИСТОРИИ ВОПРОСОВ -->
     <section class="mt-6 border-t-4 border-black/40 pt-4 space-y-4">
+      
+      <!-- 1. Моя персональная история -->
       <div id="my-personal-history-block">
         <h3 class="text-xs font-black uppercase text-pink-500 tracking-wider mb-2">Моя личная история вопросов:</h3>
         <div id="my-personal-history-log" class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-2 max-h-48 overflow-y-auto hidden"></div>
       </div>
 
+      <!-- 2. Активная история вопросов текущего угадывающего -->
       <div id="game-history-block">
         <h3 id="game-history-title" class="text-xs font-black uppercase text-yellow-300 tracking-wider mb-2">История его вопросов:</h3>
         <div id="game-history-log" class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black text-xs font-bold space-y-2 max-h-48 overflow-y-auto hidden"></div>
       </div>
+
     </section>
+
   </main>
 
-  <!-- ЭКРАН 5: ФИНАЛ -->
+  <!-- ============================================== -->
+  <!-- ЭКРАН 5: ФИНАЛ (РЕЗУЛЬТАТЫ ИГРЫ)               -->
+  <!-- ============================================== -->
   <main id="screen-results" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden transition-all duration-300 transform opacity-0 scale-95 z-10">
+    
+    <!-- Крупный ДИНАМИЧЕСКИЙ маскот -->
     <div class="flex justify-center mb-6 relative">
       <div class="absolute w-36 h-36 bg-indigo-950/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
       <div class="w-32 h-32 relative z-10 animate-winner">
@@ -315,6 +369,7 @@
       </h1>
     </header>
 
+    <!-- СЕКЦИЯ ДЖЕКБОКС-АЧИВОК -->
     <section id="achievements-section" class="bg-indigo-950/80 border-4 border-black p-4 rounded-2xl transform rotate-[-0.5deg] mb-6 space-y-3 hidden">
       <h3 class="text-xs font-black uppercase text-yellow-400 tracking-widest text-center border-b-2 border-black/40 pb-2">🎖️ Безумные грамоты партии 🎖️</h3>
       <div id="achievements-list" class="text-xs font-bold text-white space-y-2"></div>
@@ -323,7 +378,7 @@
     <section id="results-list" class="space-y-4 mb-8"></section>
 
     <div class="space-y-4">
-      <button id="btn-restart" class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider transform rotate-[-1deg]">
+      <button id="btn-restart" class="w-full bg-yellow-400 hover:bg-yellow-300 text-black font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider transform rotate-[-1deg]">
         Еще разок!
       </button>
       <button id="btn-main-menu" class="w-full bg-transparent hover:bg-indigo-950 text-white font-black text-sm py-2 px-4 rounded-xl border-4 border-black active:translate-y-[2px] transition-all uppercase tracking-wider text-center block">
@@ -333,13 +388,29 @@
   </main>
 
   <script>
+    // Инициализация базы данных персонажей
     const famousCharacters = [
       'Губка Боб', 'Шрек', 'Пикачу', 'Наруто', 'Миньон', 'Гомер Симпсон', 'Эльза',
       'Дональд Трамп', 'Илон Маск', 'Майкл Джексон', 'Альберт Эйнштейн', 'Хасбик', 'Терминатор',
-      'Человек-Паук', 'Гарри Поттер', 'Дарт Вейдер', 'Капитан Джек Воробей', 'Шерлок Холмс', 'Бэтмен', 'Танос'
+      'Человек-Паук', 'Гарри Поттер', 'Дарт Вейдер', 'Капитан Джек Воробей', 'Шерлок Холмс', 'Бэтмен', 'Танос',
+      'Санта Клаус', 'Мона Лиза', 'Граф Дракула', 'Баба Яга', 'Агент 007'
     ];
 
     const socket = io();
+
+    // Автозаполнение кода комнаты из URL
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      if (roomParam) {
+        roomCodeInput.value = roomParam.toUpperCase().substring(0, 4);
+        showToast('Код комнаты скопирован из ссылки!', 2000, true);
+      }
+    });
+
+    // ==============================================
+    // ГЕНЕРАТИВНЫЙ БЕЗОПАСНЫЙ ЗВУКОВОЙ ДВИЖОК
+    // ==============================================
     let audioCtx = null;
 
     function initAudio() {
@@ -351,6 +422,7 @@
     function playSound(type) {
       initAudio();
       if (!audioCtx) return;
+      
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
@@ -374,6 +446,7 @@
         osc.type = 'triangle';
         gain.gain.setValueAtTime(0.2, now);
         gain.gain.linearRampToValueAtTime(0.01, now + 0.45);
+
         osc.frequency.setValueAtTime(523.25, now); 
         osc.frequency.setValueAtTime(659.25, now + 0.08); 
         osc.frequency.setValueAtTime(783.99, now + 0.16); 
@@ -393,6 +466,9 @@
       }
     }
 
+    // ==============================================
+    // НЕБЛОКИРУЮЩЕЕ ПЛАВНОЕ УВЕДОМЛЕНИЕ (ТОСТ)
+    // ==============================================
     function showToast(text, duration = 3000, isSuccess = true) {
       const toast = document.getElementById('game-toast');
       const toastText = document.getElementById('game-toast-text');
@@ -409,6 +485,9 @@
       }, duration);
     }
 
+    // ==============================================
+    // АВТО-ВОССТАНОВЛЕНИЕ СЕССИИ (РЕКОННЕКТ ПРИ ВЫЛЕТАХ)
+    // ==============================================
     socket.on('connect', () => {
       btnCreate.disabled = false;
       btnJoin.disabled = false;
@@ -422,7 +501,7 @@
       const savedName = sessionStorage.getItem('username');
       const savedRoom = sessionStorage.getItem('roomCode');
       if (savedName && savedRoom) {
-        console.log("Попытка восстановления сессии для:", savedName);
+        console.log("Попытка восстановить игровую сессию для:", savedName);
         socket.emit('join_room', { username: savedName, roomCode: savedRoom });
       }
     });
@@ -433,17 +512,20 @@
     let activePlayerId = '';
     let lastAskedQuestion = '';
 
+    // Ссылки на экраны
     const screenWelcome = document.getElementById('screen-welcome');
     const screenLobby = document.getElementById('screen-lobby');
     const screenInput = document.getElementById('screen-input');
     const screenGame = document.getElementById('screen-game');
     const screenResults = document.getElementById('screen-results');
 
+    // Элементы Welcome-экрана
     const btnCreate = document.getElementById('btn-create');
     const btnJoin = document.getElementById('btn-join');
     const usernameInput = document.getElementById('username');
     const roomCodeInput = document.getElementById('room-code');
 
+    // Элементы Lobby-экрана
     const lobbyCodeDisplay = document.getElementById('lobby-code-display');
     const playersList = document.getElementById('players-list');
     const playerCount = document.getElementById('player-count');
@@ -452,6 +534,7 @@
     const btnStart = document.getElementById('btn-start');
     const btnLeave = document.getElementById('btn-leave');
 
+    // Элементы Input-экрана
     const targetPlayerDisplay = document.getElementById('target-player-display');
     const characterInput = document.getElementById('character-input');
     const btnSubmit = document.getElementById('btn-submit');
@@ -459,6 +542,7 @@
     const waitingZone = document.getElementById('waiting-zone');
     const timerBar = document.getElementById('timer-bar');
 
+    // Элементы Game-экрана
     const gameActivePlayer = document.getElementById('game-active-player');
     const gameAnswererZone = document.getElementById('game-answerer-zone');
     const gameGuesserZone = document.getElementById('game-guesser-zone');
@@ -468,7 +552,7 @@
     const liveVotesResults = document.getElementById('live-votes-results');
     const voteProgressStatus = document.getElementById('vote-progress-status');
     const votedCountDisplay = document.getElementById('voted-count-display');
-    const votersTotalDisplay = document.getElementById('voters-total-display');
+    const votersTotalDisplay = document.getElementById('voted-total-display'); // Ссылка на корректный id
     const votingButtonsGrid = document.getElementById('voting-buttons-grid');
     const gameHistoryLog = document.getElementById('game-history-log');
     const myPersonalHistoryLog = document.getElementById('my-personal-history-log');
@@ -476,10 +560,12 @@
     const gameHistoryTitle = document.getElementById('game-history-title');
     const reactionPanel = document.getElementById('reaction-panel');
 
+    // Элементы Results-экрана
     const resultsList = document.getElementById('results-list');
     const btnRestart = document.getElementById('btn-restart');
     const btnMainMenu = document.getElementById('btn-main-menu');
 
+    // ПЛАВНЫЕ ПЕРЕХОДЫ МЕЖДУ ЭКРАНАМИ
     function showScreen(targetScreen) {
       const screens = [screenWelcome, screenLobby, screenInput, screenGame, screenResults];
       const currentScreen = screens.find(s => !s.classList.contains('hidden'));
@@ -502,21 +588,29 @@
       }
     }
 
-    document.getElementById('question-input').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        document.getElementById('btn-ask').click();
-      }
-    });
+    // Копирование ссылки
+    window.copyRoomLink = function() {
+      playSound('click');
+      if (!currentRoomCode) return;
+      const joinLink = `${window.location.origin}?room=${currentRoomCode}`;
+      navigator.clipboard.writeText(joinLink).then(() => {
+        showToast('Ссылка скопирована в буфер обмена!', 2500, true);
+      }).catch(() => {
+        showToast(`Код комнаты: ${currentRoomCode}`, 3000, true);
+      });
+    };
 
+    // КЛИК: Создать комнату
     btnCreate.addEventListener('click', () => {
       playSound('click');
       const name = usernameInput.value.trim();
-      if (!name) return showToast('Введи имя!', 3000, false);
+      if (!name) return showToast('Имя введи!', 3000, false);
       myName = name;
       sessionStorage.setItem('username', name); 
       socket.emit('create_room', { username: name });
     });
 
+    // КЛИК: Войти
     btnJoin.addEventListener('click', () => {
       playSound('click');
       const name = usernameInput.value.trim();
@@ -528,11 +622,13 @@
       socket.emit('join_room', { username: name, roomCode: code });
     });
 
+    // КЛИК: Старт (только Хост)
     btnStart.addEventListener('click', () => {
       playSound('click');
       socket.emit('start_game', { roomCode: currentRoomCode });
     });
 
+    // КЛИК: Запрос рандома
     window.getRandomCharacter = function(category) {
       playSound('click');
       socket.emit('get_random_character', { category });
@@ -542,6 +638,7 @@
       characterInput.value = data.character;
     });
 
+    // ГОТОВО
     btnSubmit.addEventListener('click', () => {
       playSound('click');
       const text = characterInput.value.trim();
@@ -549,11 +646,12 @@
       socket.emit('submit_character', { roomCode: currentRoomCode, character: text });
     });
 
+    // КЛИК: Отправить вопрос
     document.getElementById('btn-ask').addEventListener('click', () => {
       playSound('click');
       const qInput = document.getElementById('question-input');
       const questionText = qInput.value.trim();
-      if (!questionText) return showToast('Запиши вопрос!', 3000, false);
+      if (!questionText) return showToast('Запиши вопрос сначала!', 3000, false);
       
       document.getElementById('btn-ask').disabled = true;
       document.getElementById('btn-guess-attempt').disabled = true;
@@ -564,6 +662,7 @@
       qInput.value = '';
     });
 
+    // ПРОГОЛОСОВАТЬ
     function sendVote(voteType) {
       playSound('click');
       if (!currentRoomCode) return;
@@ -572,6 +671,7 @@
     }
     window.sendVote = sendVote;
 
+    // ПОПЫТКА УГАДАТЬ СЕБЯ
     document.getElementById('btn-guess-attempt').addEventListener('click', () => {
       playSound('click');
       const guess = prompt('Кто ты? Напиши имя персонажа:');
@@ -580,6 +680,7 @@
       }
     });
 
+    // ОТПРАВИТЬ РЕШЕНИЕ ГОСТЯМИ ПО ДОГАДКЕ
     function submitGuessVerdict(isCorrect) {
       playSound('click');
       socket.emit('submit_guess_verdict', { roomCode: currentRoomCode, isCorrect });
@@ -587,6 +688,7 @@
     }
     window.submitGuessVerdict = submitGuessVerdict;
 
+    // ОТПРАВИТЬ ЭМОДЗИ-РЕАКЦИЮ
     function sendReaction(emoji) {
       playSound('click');
       if (currentRoomCode) {
@@ -595,15 +697,22 @@
     }
     window.sendReaction = sendReaction;
 
+    // КЛИК: Пропуск хода текущего игрока хостом
+    window.hostSkipTurn = function() {
+      if (confirm('Вы уверены, что хотите принудительно передать ход следующему игроку?')) {
+        playSound('click');
+        socket.emit('host_skip_turn', { roomCode: currentRoomCode });
+      }
+    };
+
+    // КЛИК: Еще разок
     btnRestart.addEventListener('click', () => {
       playSound('click');
       clearBgCanvas();
       socket.emit('restart_game', { roomCode: currentRoomCode });
     });
 
-    btnLeave.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
-    btnMainMenu.addEventListener('click', () => { playSound('click'); sessionStorage.clear(); location.reload(); });
-
+    // СОКЕТЫ: РЕГИСТРАЦИЯ
     socket.on('room_created', (data) => {
       currentRoomCode = data.roomCode;
       sessionStorage.setItem('roomCode', currentRoomCode);
@@ -630,6 +739,7 @@
       setupBrush();
     });
 
+    // ОБРАБОТКА СМЕНЫ СОСТОЯНИЙ ИГРЫ
     socket.on('game_state_update', (data) => {
       if (data.roomCode) {
         currentRoomCode = data.roomCode;
@@ -641,6 +751,20 @@
         showScreen(screenInput);
 
         const me = data.players.find(p => p.socketId === socket.id);
+        
+        // Список прогресса готовности карточек
+        const progressList = document.getElementById('input-progress-list');
+        if (progressList) {
+          progressList.innerHTML = '';
+          data.players.forEach(p => {
+            const statusIcon = p.hasSubmitted ? '<span>✅ Готов</span>' : '<span class="text-yellow-400 animate-pulse">✍️ Думает...</span>';
+            const item = document.createElement('div');
+            item.className = 'flex justify-between items-center border-b border-white/5 pb-1';
+            item.innerHTML = `<span>${p.name}</span> ${statusIcon}`;
+            progressList.appendChild(item);
+          });
+        }
+
         if (me && me.hasSubmitted) {
           inputFormZone.classList.add('hidden');
           waitingZone.classList.remove('hidden');
@@ -672,6 +796,13 @@
         const mePlayer = data.players.find(p => p.socketId === socket.id);
         if (mePlayer && mePlayer.color) myBrushColor = mePlayer.color;
         setupBrush();
+
+        const hostGameControls = document.getElementById('host-game-controls');
+        if (isHost) {
+          hostGameControls.classList.remove('hidden');
+        } else {
+          hostGameControls.classList.add('hidden');
+        }
 
         if (socket.id === activePlayerId) {
           gameHistoryTitle.textContent = "История твоих вопросов:";
@@ -721,6 +852,7 @@
       }
     });
 
+    // СОКЕТ: Вопрос озвучен
     socket.on('question_broadcast', (data) => {
       lastAskedQuestion = data.question;
 
@@ -746,6 +878,7 @@
       }
     });
 
+    // СОКЕТ: Обновление голосов
     socket.on('votes_updated', (data) => {
       if (socket.id === activePlayerId) {
         document.getElementById('vote-yes-count').textContent = data.votes.yes;
@@ -756,6 +889,7 @@
       }
     });
 
+    // СОКЕТ: Голосование завершено
     socket.on('voting_complete', (data) => {
       const { isYes, isTie, votes, activePlayerHistory } = data;
       
@@ -790,7 +924,7 @@
             document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
           }, 3000);
         } else if (isTie) {
-          verdictText.textContent = '🤷 Мнения разделились! Спроси что-то другое.';
+          verdictText.textContent = '🤷 Мнения разделились! Задай другой вопрос.';
           verdictText.className = 'text-xs font-black uppercase text-gray-400 mt-2';
 
           setTimeout(() => {
@@ -815,7 +949,7 @@
       } else {
         votingButtonsGrid.classList.add('hidden');
         if (isYes) {
-          gameQuestionText.textContent = 'Ответ ДА! Угадывающий продолжает.';
+          gameQuestionText.textContent = 'Ответ ДА! Угадывающий продолжает холить.';
         } else if (isTie) {
           gameQuestionText.textContent = 'Мнения разделились! Угадывающий пробует снова.';
         } else {
@@ -824,14 +958,17 @@
       }
     });
 
+    // СОКЕТ: Проверка догадки
     socket.on('guess_verification_request', (data) => {
       const verBlock = document.getElementById('guess-verification-block');
       document.getElementById('guessing-player-name').textContent = data.playerName;
       document.getElementById('guessing-player-answer').textContent = data.guess;
       document.getElementById('actual-role-display').textContent = data.actualCharacter;
+      
       verBlock.classList.remove('hidden');
     });
 
+    // СОКЕТ: Ожидание вердикта
     socket.on('guess_waiting_for_verdict', () => {
       document.getElementById('guess-waiting-block').classList.remove('hidden');
       questionInputBlock.classList.add('hidden');
@@ -839,6 +976,7 @@
       document.getElementById('btn-guess-attempt').disabled = true;
     });
 
+    // СОКЕТ: Эмодзи-реакция
     socket.on('broadcast_reaction', (data) => {
       const { emoji, senderName } = data;
       const container = document.getElementById('reaction-container');
@@ -856,6 +994,7 @@
       setTimeout(() => { el.remove(); }, 2500);
     });
 
+    // УНИВЕРСАЛЬНАЯ ОТРИСОВКА ИСТОРИИ
     function renderHistory(historyArray, logElement) {
       logElement.innerHTML = '';
 
@@ -883,11 +1022,13 @@
       logElement.scrollTop = logElement.scrollHeight;
     }
 
+    // СОКЕТЫ ДЛЯ РИСОВАНИЯ
     socket.on('broadcast_line', (data) => {
       const x1 = data.x1 * bgCanvas.width;
       const y1 = data.y1 * bgCanvas.height;
       const x2 = data.x2 * bgCanvas.width;
       const y2 = data.y2 * bgCanvas.height;
+      
       drawSegment(x1, y1, x2, y2, data.color);
     });
 
@@ -896,14 +1037,15 @@
       playSound('incorrect'); 
     });
 
+    // СОКЕТ: Результат догадки
     socket.on('guess_result', (data) => {
       document.getElementById('guess-waiting-block').classList.add('hidden');
       if (data.success) {
         playSound('correct');
-        showToast(`🎉 ${data.playerName} угадал, что он — ${data.character}!`, 4000, true);
+        showToast(`🎉 ${data.playerName} правильно угадал, что он — ${data.character}!`, 4000, true);
       } else {
         playSound('incorrect');
-        showToast(`❌ Зал отклонил версию игрока ${data.playerName}.`, 4000, false);
+        showToast(`❌ Зал посчитал догадку игрока ${data.playerName} неверной. Ход передается дальше.`, 4000, false);
       }
     });
 
@@ -921,7 +1063,7 @@
       players.forEach((player, index) => {
         const rotationClass = rotations[index % rotations.length];
         const card = document.createElement('div');
-        // Теперь статус «Вылетел» покажется только в том случае, если сервер явно прислал online: false
+        
         const isOffline = player.online === false;
         const offlineBadge = isOffline ? '<span class="text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded ml-1 uppercase">Вылетел</span>' : '';
         const readyBadge = player.hasSubmitted ? '<span class="text-[9px] bg-green-500 text-white px-1.5 py-0.5 rounded ml-1 uppercase">Готов</span>' : '';
@@ -954,7 +1096,11 @@
       const resultsMascot = document.getElementById('results-mascot');
 
       if (resultsMascot && myData) {
-        resultsMascot.src = myData.hasGuessed ? 'mascot-happy.png' : 'mascot-sad.png';
+        if (myData.hasGuessed) {
+          resultsMascot.src = 'mascot-happy.png';
+        } else {
+          resultsMascot.src = 'mascot-sad.png';
+        }
       }
 
       const sortedPlayers = [...players].sort((a, b) => (b.hasGuessed ? 1 : 0) - (a.hasGuessed ? 1 : 0));
@@ -1021,6 +1167,9 @@
       }, 1000);
     }
 
+    // ==============================================
+    // CANVAS РИСОВАЛКА НА СТРАНИЦЕ
+    // ==============================================
     const bgCanvas = document.getElementById('bg-drawing-canvas');
     const bgCtx = bgCanvas.getContext('2d');
     let isDrawingBg = false;
