@@ -117,8 +117,9 @@ function startTurnTimer(room, roomCode) {
       currentRoom.turnTimerInterval = null;
 
       const activePlayer = currentRoom.players[currentRoom.activePlayerIndex];
+      const name = activePlayer ? activePlayer.name : 'Игрок';
       io.to(roomCode).emit('toast_broadcast', {
-        message: `⏰ Время хода игрока ${activePlayer.name} истекло! Ход переходит дальше.`,
+        message: `⏰ Время хода игрока ${name} истекло! Ход переходит дальше.`,
         isSuccess: false
       });
 
@@ -127,29 +128,47 @@ function startTurnTimer(room, roomCode) {
   }, 1000);
 }
 
-// Передача хода следующему активному игроку
+// Безопасная передача хода следующему активному игроку
 function passTurnToNext(room, roomCode) {
   if (room.turnTimeout) {
     clearTimeout(room.turnTimeout);
     room.turnTimeout = null;
   }
 
-  const startIndex = room.activePlayerIndex;
-  do {
-    room.activePlayerIndex = (room.activePlayerIndex + 1) % room.players.length;
-  } while (room.players[room.activePlayerIndex].hasGuessed && room.activePlayerIndex !== startIndex);
+  const activePlayers = room.players.filter(p => !p.hasGuessed);
+  if (activePlayers.length === 0) {
+    room.status = 'RESULTS';
+    clearRoomTimers(room);
+    const achievements = calculateAchievements(room.players);
+    room.players.forEach(p => {
+      io.to(p.socketId).emit('game_state_update', {
+        status: room.status,
+        players: room.players,
+        achievements: achievements
+      });
+    });
+    return;
+  }
+
+  let nextIndex = room.activePlayerIndex;
+  for (let i = 0; i < room.players.length; i++) {
+    nextIndex = (nextIndex + 1) % room.players.length;
+    if (!room.players[nextIndex].hasGuessed) {
+      room.activePlayerIndex = nextIndex;
+      break;
+    }
+  }
 
   const nextActivePlayer = room.players[room.activePlayerIndex];
 
-  // Перезапускаем таймер для следующего игрока
   startTurnTimer(room, roomCode);
 
   room.players.forEach(p => {
     io.to(p.socketId).emit('game_state_update', {
       status: room.status,
       roomCode: room.roomCode,
-      activePlayerId: nextActivePlayer.socketId,
-      activePlayerHistory: nextActivePlayer.history,
+      activePlayerId: nextActivePlayer ? nextActivePlayer.socketId : null,
+      activePlayerHistory: nextActivePlayer ? nextActivePlayer.history : [],
       myPersonalHistory: p.history,
       players: getMaskedPlayersFor(room, p.socketId),
       options: room.options
@@ -190,6 +209,8 @@ function checkAndResolveVote(room, roomCode) {
   if (!room.currentQuestion) return;
 
   const activePlayer = room.players[room.activePlayerIndex];
+  if (!activePlayer) return;
+
   const eligibleVoters = room.players.filter(p => p.socketId !== activePlayer.socketId && p.online);
   const totalVoters = eligibleVoters.length;
 
@@ -363,8 +384,7 @@ io.on('connection', (socket) => {
       status: 'LOBBY', 
       options: {
         inputTimerDuration: 60,
-        turnTimerDuration: 60,
-        allowedDecks: ['people', 'movies', 'cartoons', 'games']
+        turnTimerDuration: 60
       },
       players: [
         {
@@ -529,12 +549,6 @@ io.on('connection', (socket) => {
       if (options.turnTimerDuration !== undefined && [0, 30, 60, 90, 120].includes(options.turnTimerDuration)) {
         room.options.turnTimerDuration = options.turnTimerDuration;
       }
-      if (options.allowedDecks && Array.isArray(options.allowedDecks)) {
-        const validDecks = options.allowedDecks.filter(d => ['people', 'movies', 'cartoons', 'games'].includes(d));
-        if (validDecks.length > 0) {
-          room.options.allowedDecks = validDecks;
-        }
-      }
     }
 
     room.players.forEach(p => {
@@ -585,12 +599,12 @@ io.on('connection', (socket) => {
         clearInterval(room.inputTimerInterval);
         room.inputTimerInterval = null;
 
-        // Автозаполнение ролей из разрешенных колод
-        const allowedDecks = (room.options && room.options.allowedDecks.length > 0) ? room.options.allowedDecks : ['people'];
+        // Автозаполнение ролей из всех колод
+        const decks = ['people', 'movies', 'cartoons', 'games'];
         room.players.forEach(p => {
           const target = room.players.find(t => t.name === p.targetName);
           if (target && target.character === null) {
-            const randomDeckName = allowedDecks[Math.floor(Math.random() * allowedDecks.length)];
+            const randomDeckName = decks[Math.floor(Math.random() * decks.length)];
             const currentDeck = DECKS[randomDeckName] || DECKS.people;
             const randChar = currentDeck[Math.floor(Math.random() * currentDeck.length)];
             target.character = randChar;
@@ -607,8 +621,8 @@ io.on('connection', (socket) => {
           io.to(p.socketId).emit('game_state_update', {
             status: room.status,
             roomCode: room.roomCode,
-            activePlayerId: nextActivePlayer.socketId,
-            activePlayerHistory: nextActivePlayer.history,
+            activePlayerId: nextActivePlayer ? nextActivePlayer.socketId : null,
+            activePlayerHistory: nextActivePlayer ? nextActivePlayer.history : [],
             myPersonalHistory: p.history,
             players: getMaskedPlayersFor(room, p.socketId),
             options: room.options
@@ -664,8 +678,8 @@ io.on('connection', (socket) => {
         io.to(p.socketId).emit('game_state_update', {
           status: room.status,
           roomCode: room.roomCode,
-          activePlayerId: nextActivePlayer.socketId,
-          activePlayerHistory: nextActivePlayer.history,
+          activePlayerId: nextActivePlayer ? nextActivePlayer.socketId : null,
+          activePlayerHistory: nextActivePlayer ? nextActivePlayer.history : [],
           myPersonalHistory: p.history,
           players: getMaskedPlayersFor(room, p.socketId),
           options: room.options
@@ -697,6 +711,8 @@ io.on('connection', (socket) => {
       clearInterval(room.turnTimerInterval);
       room.turnTimerInterval = null;
     }
+    // Скрываем таймер на клиентах при переходе к голосованию
+    io.to(room.roomCode).emit('turn_timer_tick', { timeLeft: null, duration: null });
 
     if (room.turnTimeout) {
       clearTimeout(room.turnTimeout);
@@ -726,6 +742,7 @@ io.on('connection', (socket) => {
     if (!room || room.status !== 'PLAYING') return;
 
     const activePlayer = room.players[room.activePlayerIndex];
+    if (!activePlayer) return;
     if (socket.id === activePlayer.socketId) return;
     if (room.votedPlayers.includes(socket.id)) return;
 
@@ -752,6 +769,8 @@ io.on('connection', (socket) => {
       clearInterval(room.turnTimerInterval);
       room.turnTimerInterval = null;
     }
+    // Скрываем таймер на клиентах во время верификации
+    io.to(room.roomCode).emit('turn_timer_tick', { timeLeft: null, duration: null });
 
     if (room.turnTimeout) {
       clearTimeout(room.turnTimeout);
@@ -759,7 +778,7 @@ io.on('connection', (socket) => {
     }
 
     const activePlayer = room.players[room.activePlayerIndex];
-    if (socket.id !== activePlayer.socketId) return;
+    if (!activePlayer || socket.id !== activePlayer.socketId) return;
 
     room.pendingGuess = guess.trim();
     room.votes = { yes: 0, no: 0, dont_know: 0 };
@@ -786,6 +805,7 @@ io.on('connection', (socket) => {
     if (!room || room.status !== 'PLAYING') return;
 
     const activePlayer = room.players[room.activePlayerIndex];
+    if (!activePlayer) return;
     if (socket.id === activePlayer.socketId) return;
     if (room.votedPlayers.includes(socket.id)) return;
 

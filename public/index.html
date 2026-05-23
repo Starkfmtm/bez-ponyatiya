@@ -192,24 +192,6 @@
           <option value="120">120 секунд</option>
         </select>
       </div>
-
-      <div class="space-y-1.5">
-        <span class="block">Активные колоды карт:</span>
-        <div class="grid grid-cols-2 gap-2 pt-1 font-bold">
-          <label class="flex items-center gap-1 cursor-pointer">
-            <input type="checkbox" id="deck-cb-people" checked class="accent-pink-500" disabled> Люди
-          </label>
-          <label class="flex items-center gap-1 cursor-pointer">
-            <input type="checkbox" id="deck-cb-movies" checked class="accent-pink-500" disabled> Кино
-          </label>
-          <label class="flex items-center gap-1 cursor-pointer">
-            <input type="checkbox" id="deck-cb-cartoons" checked class="accent-pink-500" disabled> Мульты
-          </label>
-          <label class="flex items-center gap-1 cursor-pointer">
-            <input type="checkbox" id="deck-cb-games" checked class="accent-pink-500" disabled> Игры
-          </label>
-        </div>
-      </div>
     </section>
 
     <section class="mb-6">
@@ -682,10 +664,6 @@
     // Настройки в Лобби
     const selectTimer = document.getElementById('settings-timer-duration');
     const selectTurnTimer = document.getElementById('settings-turn-duration');
-    const cbPeople = document.getElementById('deck-cb-people');
-    const cbMovies = document.getElementById('deck-cb-movies');
-    const cbCartoons = document.getElementById('deck-cb-cartoons');
-    const cbGames = document.getElementById('deck-cb-games');
 
     // Элементы Lobby-экрана
     const lobbyCodeDisplay = document.getElementById('lobby-code-display');
@@ -753,67 +731,26 @@
     // Сбор и передача настроек комнаты (Для Хоста)
     function collectAndSendOptions() {
       if (!isHost || !currentRoomCode) return;
-      const allowedDecks = [];
-      if (cbPeople.checked) allowedDecks.push('people');
-      if (cbMovies.checked) allowedDecks.push('movies');
-      if (cbCartoons.checked) allowedDecks.push('cartoons');
-      if (cbGames.checked) allowedDecks.push('games');
-
-      if (allowedDecks.length === 0) {
-        cbPeople.checked = true;
-        allowedDecks.push('people');
-      }
 
       socket.emit('update_room_options', {
         roomCode: currentRoomCode,
         options: {
           inputTimerDuration: parseInt(selectTimer.value, 10),
-          turnTimerDuration: parseInt(selectTurnTimer.value, 10),
-          allowedDecks: allowedDecks
+          turnTimerDuration: parseInt(selectTurnTimer.value, 10)
         }
       });
     }
 
     selectTimer.addEventListener('change', collectAndSendOptions);
     selectTurnTimer.addEventListener('change', collectAndSendOptions);
-    cbPeople.addEventListener('change', collectAndSendOptions);
-    cbMovies.addEventListener('change', collectAndSendOptions);
-    cbCartoons.addEventListener('change', collectAndSendOptions);
-    cbGames.addEventListener('change', collectAndSendOptions);
 
     function syncLobbySettingsUI(options) {
       if (!options) return;
       selectTimer.value = options.inputTimerDuration;
       selectTurnTimer.value = options.turnTimerDuration !== undefined ? options.turnTimerDuration : 60;
-      cbPeople.checked = options.allowedDecks.includes('people');
-      cbMovies.checked = options.allowedDecks.includes('movies');
-      cbCartoons.checked = options.allowedDecks.includes('cartoons');
-      cbGames.checked = options.allowedDecks.includes('games');
 
       selectTimer.disabled = !isHost;
       selectTurnTimer.disabled = !isHost;
-      cbPeople.disabled = !isHost;
-      cbMovies.disabled = !isHost;
-      cbCartoons.disabled = !isHost;
-      cbGames.disabled = !isHost;
-    }
-
-    // Синхронизация доступных колод при выборе карт на экране ввода
-    function syncInputDecksUI(options) {
-      if (!options || !options.allowedDecks) return;
-      const decks = ['people', 'movies', 'cartoons', 'games'];
-      decks.forEach(deck => {
-        const btn = document.querySelector(`button[onclick="getRandomCharacter('${deck}')"]`);
-        if (btn) {
-          if (options.allowedDecks.includes(deck)) {
-            btn.disabled = false;
-            btn.classList.remove('opacity-50', 'pointer-events-none');
-          } else {
-            btn.disabled = true;
-            btn.classList.add('opacity-50', 'pointer-events-none');
-          }
-        }
-      });
     }
 
     // Обработка отправки вопросов по Enter
@@ -1027,7 +964,6 @@
 
       if (data.status === 'INPUTTING') {
         targetPlayerDisplay.textContent = data.targetName || '---';
-        syncInputDecksUI(data.options); // Скрываем/отключаем недоступные колоды
         showScreen(screenInput);
 
         const me = data.players.find(p => p.socketId === socket.id);
