@@ -3,6 +3,7 @@ const { clearRoomTimers, startTurnTimer, passTurnToNext } = require('../managers
 const { isValidUsername, isValidRoomCode, isValidCharacter, isValidQuestion, isValidGuess } = require('../utils/validators');
 const DECKS = require('../utils/decks');
 
+// Объявляем массив цветов на уровне модуля
 const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849', '#38bdf8', '#fb7185'];
 
 function initSockets(io) {
@@ -45,7 +46,7 @@ function initSockets(io) {
             questionsCount: 0,
             reactionsCount: 0,
             history: [],
-            color: playerColors[0],
+            color: playerColors[0], // Корректное использование массива
             online: true
           }
         ],
@@ -182,7 +183,7 @@ function initSockets(io) {
         hasGuessed: false,
         questionsCount: 0,
         history: [],
-        color: playerColors[room.players.length % playerColors.length],
+        color: playerColors[room.players.length % playerColors.length], // Корректное использование массива
         online: true
       };
 
@@ -573,7 +574,7 @@ function initSockets(io) {
           io.to(room.roomCode).emit('guess_result', {
             success: true,
             playerName: activePlayer.name,
-            character: activePlayer.character
+            character: activeCharacter = activePlayer.character
           });
 
           const remainingPlayers = room.players.filter(p => !p.hasGuessed);
