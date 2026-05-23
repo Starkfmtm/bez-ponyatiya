@@ -269,9 +269,9 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 4: ИГРОВОЙ ПРОЦЕСС                       -->
   <!-- ============================================== -->
-  <main id="screen-game" class="w-full max-w-md hidden z-10 transition-all duration-300 transform opacity-0 scale-95 p-2 pointer-events-none relative mx-auto flex flex-col items-center">
+  <main id="screen-game" class="w-full max-w-md hidden z-10 transition-all duration-300 transform opacity-0 scale-95 p-2 pointer-events-none relative mx-auto">
     
-    <!-- Основная карточка игры (Perfect Centered) -->
+    <!-- Основная карточка игры (Perfect Center!) -->
     <div class="w-full bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative space-y-6 pointer-events-auto animate-pop-in">
       
       <!-- Имя того, кто угадывает -->
@@ -336,7 +336,7 @@
         </div>
 
         <div class="text-center">
-          <!-- Желтая плашка с текстовым оформлением (СКОТЧ ПОЛНОСТЬЮ УБРАН) -->
+          <!-- Желтая плашка (СКОТЧ И ДУБЛИКАТЫ ПОЛНОСТЬЮ ВЫРЕЗАНЫ) -->
           <div class="inline-block bg-yellow-400 text-black border-4 border-black px-8 py-6 rounded-2xl font-title text-3xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[2deg] animate-pulse">
             ❓ КТО Я? ❓
           </div>
@@ -399,7 +399,7 @@
       </div>
 
       <!-- ОТДЕЛЬНАЯ ПАНЕЛЬ РЕАКЦИЙ (Дизайн пульта управления) -->
-      <div id="reaction-panel" class="hidden bg-cyan-400 border-4 border-black p-4 rounded-3xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black font-black space-y-3 pointer-events-auto">
+      <div id="reaction-panel" class="hidden bg-cyan-400 border-4 border-black p-4 rounded-3xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black font-black space-y-3 pointer-events-auto animate-pop-in">
         <div class="text-center uppercase tracking-widest text-[10px] text-cyan-950 border-b-2 border-cyan-500/40 pb-1.5">
           📟 Панель Реакций
         </div>
@@ -525,6 +525,27 @@
         gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
         osc.start();
         osc.stop(now + 0.35);
+      }
+      // Синтезированный забавный звон будильника (будильник Jackbox!)
+      else if (type === 'alarm') {
+        const now = audioCtx.currentTime;
+        for (let i = 0; i < 5; i++) {
+          const alarmOsc = audioCtx.createOscillator();
+          const alarmGain = audioCtx.createGain();
+          alarmOsc.connect(alarmGain);
+          alarmGain.connect(audioCtx.destination);
+          
+          alarmOsc.type = 'sine';
+          const freq = i % 2 === 0 ? 880 : 987.77; 
+          const startTime = now + (i * 0.08);
+          
+          alarmOsc.frequency.setValueAtTime(freq, startTime);
+          alarmGain.gain.setValueAtTime(0.12, startTime);
+          alarmGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.07);
+          
+          alarmOsc.start(startTime);
+          alarmOsc.stop(startTime + 0.08);
+        }
       }
     }
 
@@ -716,9 +737,9 @@
       socket.emit('submit_character', { roomCode: currentRoomCode, character: text });
     });
 
-    // КЛИК: Отправить вопрос
+    // КЛИК: Отправить вопрос (С будильником!)
     document.getElementById('btn-ask').addEventListener('click', () => {
-      playSound('click');
+      playSound('alarm'); // Активирован будильник!
       const qInput = document.getElementById('question-input');
       const questionText = qInput.value.trim();
       if (!questionText) return showToast('Запиши вопрос сначала!', 3000, false);
@@ -741,9 +762,9 @@
     }
     window.sendVote = sendVote;
 
-    // ПОПЫТКА УГАДАТЬ СЕБЯ
+    // ПОПЫТКА УГАДАТЬ СЕБЯ (С будильником!)
     document.getElementById('btn-guess-attempt').addEventListener('click', () => {
-      playSound('click');
+      playSound('alarm'); // Активирован будильник!
       const guess = prompt('Кто ты? Напиши имя персонажа:');
       if (guess) {
         socket.emit('guess_attempt', { roomCode: currentRoomCode, guess });
@@ -1186,41 +1207,39 @@
           </div>
         ` : '';
 
+        // Внешняя обертка-контейнер для каскадной pop-in анимации без конфликта парения
+        const wrapper = document.createElement('div');
+        wrapper.className = 'w-full animate-bounce-pop';
+        wrapper.style.animationDelay = `${index * 150}ms`;
+        wrapper.style.opacity = '0';
+        wrapper.style.animationFillMode = 'forwards';
+
         const card = document.createElement('div');
         
         if (isWinner) {
-          // Карточка победителя с анимацией бесконечного парения winner-float
-          card.className = `bg-yellow-400 text-black border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} relative animate-bounce-pop`;
-          card.style.animationDelay = `${index * 150}ms`;
-          card.style.opacity = '0';
-          card.style.animationFillMode = 'forwards';
+          // Карточка абсолютного победителя с обособленной анимацией парения winner-float
+          card.className = `bg-yellow-400 text-black border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} relative animate-winner-float`;
           
           card.innerHTML = `
-            <div class="animate-winner-float w-full h-full">
-              <div class="absolute -top-5 -left-3 text-4xl rotate-[-15deg]">👑</div>
-              <div class="flex justify-between items-center relative z-0">
-                <div>
-                  <p class="text-[10px] font-black uppercase text-amber-950 tracking-wider">Победитель партии!</p>
-                  <h3 class="font-title text-xl font-black uppercase leading-tight">${player.name} ${player.name === myName ? '(Ты)' : ''}</h3>
-                  <p class="text-xs font-bold opacity-80">Угадал роль: <span class="underline font-black">${player.character}</span></p>
-                  ${awardBadge}
-                </div>
-                <div class="shrink-0 ml-2">
-                  <span class="bg-black text-yellow-400 font-black px-2.5 py-1 rounded-full text-[10px] uppercase border-2 border-black">ЧЕМПИОН</span>
-                </div>
+            <div class="absolute -top-5 -left-3 text-4xl rotate-[-15deg]">👑</div>
+            <div class="flex justify-between items-center relative z-0">
+              <div>
+                <p class="text-[10px] font-black uppercase text-amber-950 tracking-wider">Победитель партии!</p>
+                <h3 class="font-title text-xl font-black uppercase leading-tight">${player.name} ${player.name === myName ? '(Ты)' : ''}</h3>
+                <p class="text-xs font-bold opacity-80">Угадал роль: <span class="underline font-black">${player.character}</span></p>
+                ${awardBadge}
+              </div>
+              <div class="shrink-0 ml-2">
+                <span class="bg-black text-yellow-400 font-black px-2.5 py-1 rounded-full text-[10px] uppercase border-2 border-black">ЧЕМПИОН</span>
               </div>
             </div>
           `;
         } else {
-          // Карточки остальных игроков с последовательной упругой поочередной выгрузкой
           const cardBg = player.hasGuessed ? 'bg-cyan-400 text-black' : 'bg-indigo-950/60 text-indigo-200 opacity-80';
           const labelText = player.hasGuessed ? 'Тоже угадал!' : 'Не успел отгадать';
           const textStyle = player.hasGuessed ? 'text-black font-black' : 'text-white opacity-70';
 
-          card.className = `${cardBg} border-4 border-black p-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} animate-bounce-pop`;
-          card.style.animationDelay = `${index * 150}ms`;
-          card.style.opacity = '0';
-          card.style.animationFillMode = 'forwards';
+          card.className = `${cardBg} border-4 border-black p-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass}`;
           
           card.innerHTML = `
             <div class="flex justify-between items-center">
@@ -1233,7 +1252,9 @@
             </div>
           `;
         }
-        resultsList.appendChild(card);
+        
+        wrapper.appendChild(card);
+        resultsList.appendChild(wrapper);
       });
     }
 
