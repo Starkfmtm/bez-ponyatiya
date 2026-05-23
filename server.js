@@ -151,7 +151,8 @@ function passTurnToNext(room, roomCode) {
       activePlayerId: nextActivePlayer.socketId,
       activePlayerHistory: nextActivePlayer.history,
       myPersonalHistory: p.history,
-      players: getMaskedPlayersFor(room, p.socketId)
+      players: getMaskedPlayersFor(room, p.socketId),
+      options: room.options
     });
   });
 }
@@ -247,13 +248,10 @@ function checkAndResolveVote(room, roomCode) {
     room.votedPlayers = [];
 
     if (isYes) {
-      // Игрок ответил правильно, перезапускаем его таймер хода
       startTurnTimer(room, roomCode);
     } else if (isTie || isDontKnow) {
-      // Игрок получил спорный ответ, перезапускаем его таймер хода
       startTurnTimer(room, roomCode);
     } else {
-      // При ответе «НЕТ» передаем ход со сдвигом через 3.5 сек
       if (room.turnTimeout) clearTimeout(room.turnTimeout);
       room.turnTimeout = setTimeout(() => {
         const currentRoom = rooms.get(roomCode);
@@ -451,11 +449,11 @@ io.on('connection', (socket) => {
             currentQuestion: room.currentQuestion,
             votes: room.votes,
             votedPlayers: room.votedPlayers,
-            pendingGuess: room.pendingGuess
+            pendingGuess: room.pendingGuess,
+            options: room.options
           });
         });
 
-        // Навесим таймер хода при возврате в игру
         if (room.status === 'PLAYING' && room.options.turnTimerDuration > 0) {
           socket.emit('turn_timer_tick', { timeLeft: room.turnTimeLeft, duration: room.options.turnTimerDuration });
         }
@@ -570,19 +568,24 @@ io.on('connection', (socket) => {
         status: room.status,
         roomCode: room.roomCode,
         targetName: p.targetName,
-        players: getMaskedPlayersFor(room, p.socketId)
+        players: getMaskedPlayersFor(room, p.socketId),
+        options: room.options
       });
     });
 
     if (room.inputTimerInterval) clearInterval(room.inputTimerInterval);
     room.inputTimerInterval = setInterval(() => {
       room.inputTimeLeft--;
-      io.to(room.roomCode).emit('timer_tick', { timeLeft: room.inputTimeLeft });
+      io.to(room.roomCode).emit('timer_tick', { 
+        timeLeft: room.inputTimeLeft,
+        duration: room.options ? room.options.inputTimerDuration : 60
+      });
 
       if (room.inputTimeLeft <= 0) {
         clearInterval(room.inputTimerInterval);
         room.inputTimerInterval = null;
 
+        // Автозаполнение ролей из разрешенных колод
         const allowedDecks = (room.options && room.options.allowedDecks.length > 0) ? room.options.allowedDecks : ['people'];
         room.players.forEach(p => {
           const target = room.players.find(t => t.name === p.targetName);
@@ -598,7 +601,6 @@ io.on('connection', (socket) => {
         room.activePlayerIndex = Math.floor(Math.random() * room.players.length);
         const nextActivePlayer = room.players[room.activePlayerIndex];
 
-        // Запуск таймера для первого угадывающего
         startTurnTimer(room, room.roomCode);
 
         room.players.forEach(p => {
@@ -608,7 +610,8 @@ io.on('connection', (socket) => {
             activePlayerId: nextActivePlayer.socketId,
             activePlayerHistory: nextActivePlayer.history,
             myPersonalHistory: p.history,
-            players: getMaskedPlayersFor(room, p.socketId)
+            players: getMaskedPlayersFor(room, p.socketId),
+            options: room.options
           });
         });
       }
@@ -664,7 +667,8 @@ io.on('connection', (socket) => {
           activePlayerId: nextActivePlayer.socketId,
           activePlayerHistory: nextActivePlayer.history,
           myPersonalHistory: p.history,
-          players: getMaskedPlayersFor(room, p.socketId)
+          players: getMaskedPlayersFor(room, p.socketId),
+          options: room.options
         });
       });
     } else {
@@ -673,7 +677,8 @@ io.on('connection', (socket) => {
           status: room.status,
           roomCode: room.roomCode,
           targetName: p.targetName,
-          players: getMaskedPlayersFor(room, p.socketId)
+          players: getMaskedPlayersFor(room, p.socketId),
+          options: room.options
         });
       });
     }
@@ -688,7 +693,6 @@ io.on('connection', (socket) => {
     const room = rooms.get(roomCode.toUpperCase().trim());
     if (!room) return;
 
-    // Снимаем таймер хода на время голосования
     if (room.turnTimerInterval) {
       clearInterval(room.turnTimerInterval);
       room.turnTimerInterval = null;
@@ -744,7 +748,6 @@ io.on('connection', (socket) => {
     const room = rooms.get(roomCode.toUpperCase().trim());
     if (!room || room.status !== 'PLAYING') return;
 
-    // Снимаем таймер на время проверки залом
     if (room.turnTimerInterval) {
       clearInterval(room.turnTimerInterval);
       room.turnTimerInterval = null;
@@ -909,7 +912,8 @@ io.on('connection', (socket) => {
               activePlayerHistory: activePlayer ? activePlayer.history : [],
               myPersonalHistory: p.history,
               targetName: p.targetName,
-              players: getMaskedPlayersFor(room, p.socketId)
+              players: getMaskedPlayersFor(room, p.socketId),
+              options: room.options
             });
           });
 
