@@ -285,7 +285,7 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 4: ИГРОВОЙ ПРОЦЕСС                       -->
   <!-- ============================================== -->
-  <main id="screen-game" class="w-full max-w-md hidden z-10 transition-all duration-300 transform opacity-0 scale-95 p-2 pointer-events-none relative mx-auto">
+  <main id="screen-game" class="w-full max-w-md hidden z-10 transition-all duration-300 transform opacity-0 scale-95 p-2 relative mx-auto">
     
     <div class="w-full bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative space-y-6 pointer-events-auto animate-pop-in">
       
@@ -342,6 +342,20 @@
 
         <!-- БЛОК Б: Роль ОТГАДЫВАЮЩЕГО -->
         <section id="game-guesser-zone" class="space-y-6 hidden">
+          <!-- Ожидание решения зала -->
+          <div id="guess-waiting-block" class="bg-indigo-950/80 p-6 rounded-2xl border-4 border-black text-center hidden transform rotate-[-0.5deg] space-y-6">
+            <div class="flex justify-center relative">
+              <div class="absolute w-28 h-28 bg-indigo-900/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+              <div class="w-28 h-28 relative z-10 animate-wiggle">
+                <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот ожидания">
+              </div>
+            </div>
+            <div class="space-y-1">
+              <p class="text-xs font-black uppercase text-pink-500 animate-pulse">Твоя догадка отправлена на проверку!</p>
+              <p class="font-black text-sm text-white">Остальные игроки решают, засчитать ли твой ответ...</p>
+            </div>
+          </div>
+
           <div class="text-center">
             <div class="inline-block bg-yellow-400 text-black border-4 border-black px-8 py-6 rounded-2xl font-title text-3xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[2deg] animate-pulse">
               ❓ КТО Я? ❓
@@ -402,12 +416,12 @@
               <!-- Секция ДА -->
               <div class="bg-green-100/60 p-2.5 rounded-lg border border-green-300">
                 <span class="font-black text-green-700 block mb-1">ДА 👍</span>
-                <div id="notepad-yes-log" class="bg-[#fffef2] min-h-[90px] max-h-40 overflow-y-auto px-2 scrollbar-none font-semibold"></div>
+                <div id="notepad-yes-log" class="ruled-page min-h-[90px] max-h-40 overflow-y-auto px-2 scrollbar-none font-semibold"></div>
               </div>
               <!-- Секция НЕТ/ХЗ -->
               <div class="bg-red-100/60 p-2.5 rounded-lg border border-red-300">
                 <span class="font-black text-red-700 block mb-1">НЕТ / ХЗ 👎 🤷</span>
-                <div id="notepad-no-log" class="bg-[#fffef2] min-h-[90px] max-h-40 overflow-y-auto px-2 scrollbar-none font-semibold"></div>
+                <div id="notepad-no-log" class="ruled-page min-h-[90px] max-h-40 overflow-y-auto px-2 scrollbar-none font-semibold"></div>
               </div>
             </div>
           </div>
@@ -998,14 +1012,22 @@
         const playersArray = data.players || [];
         const activePlayer = playersArray.find(p => p.socketId === activePlayerId);
 
-        document.getElementById('guess-verification-block').classList.add('hidden');
+        // СБРОС СТАТУСА КАРТОЧКИ ВЕРИФИКАЦИИ И ВОССТАНОВЛЕНИЕ КОНТЕНТА
+        const verBlock = document.getElementById('guess-verification-block');
+        if (verBlock) verBlock.classList.add('hidden');
         if (gameActiveRoundContent) gameActiveRoundContent.classList.remove('hidden');
-        document.getElementById('guess-waiting-block').classList.add('hidden');
         
-        document.getElementById('btn-ask').disabled = false;
-        document.getElementById('btn-guess-attempt').disabled = false;
-        document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
-        document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
+        const waitBlock = document.getElementById('guess-waiting-block');
+        if (waitBlock) waitBlock.classList.add('hidden');
+        
+        const btnAsk = document.getElementById('btn-ask');
+        const btnGuess = document.getElementById('btn-guess-attempt');
+        if (btnAsk && btnGuess) {
+          btnAsk.disabled = false;
+          btnGuess.disabled = false;
+          btnAsk.classList.remove('opacity-50', 'cursor-not-allowed');
+          btnGuess.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
 
         renderNotepad(data.myPersonalHistory || []);
         renderHistory(data.activePlayerHistory || [], gameHistoryLog);
@@ -1250,6 +1272,8 @@
     function renderNotepad(historyArray) {
       const yesLog = document.getElementById('notepad-yes-log');
       const noLog = document.getElementById('notepad-no-log');
+      if (!yesLog || !noLog) return; // Защита на случай, если DOM еще не готов
+      
       yesLog.innerHTML = '';
       noLog.innerHTML = '';
 
@@ -1285,6 +1309,7 @@
     }
 
     function fillWithLines(element, targetCount) {
+      if (!element) return;
       const currentCount = element.children.length;
       if (currentCount < targetCount) {
         for (let i = 0; i < (targetCount - currentCount); i++) {
@@ -1298,6 +1323,7 @@
 
     // УНИВЕРСАЛЬНАЯ ОТРИСОВКА ИСТОРИИ (ВЕРСИЯ ДЛЯ ЗАЛА)
     function renderHistory(historyArray, logElement) {
+      if (!logElement) return; // Защита
       logElement.innerHTML = '';
 
       if (!historyArray || historyArray.length === 0) {
@@ -1355,6 +1381,7 @@
     });
 
     function updateLobbyUI(players) {
+      if (!playersList || !playerCount) return;
       playersList.innerHTML = '';
       playerCount.textContent = players.length;
 
@@ -1388,6 +1415,7 @@
     }
 
     function updateResultsUI(players, achievements) {
+      if (!resultsList) return;
       resultsList.innerHTML = '';
 
       const myData = players.find(p => p.name === myName);
