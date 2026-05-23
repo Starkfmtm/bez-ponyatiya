@@ -948,7 +948,7 @@
       showToast(data.message, 4000, data.isSuccess);
     });
 
-    // ОБРАБОТКА СМЕНЫ СОСТОЯНИЙ ИГРЫ
+    // ОБРАБОТКА СМЕНЫ СОСТОЯНИЙ ИГРЫ (ТОТАЛЬНАЯ КЛИЕНТСКАЯ ЗАЩИТА)
     socket.on('game_state_update', (data) => {
       if (!data) return;
 
@@ -1253,8 +1253,8 @@
       yesLog.innerHTML = '';
       noLog.innerHTML = '';
 
-      const yesItems = historyArray ? historyArray.filter(item => item.verdict.includes('ДА')) : [];
-      const noItems = historyArray ? historyArray.filter(item => !item.verdict.includes('ДА')) : [];
+      const yesItems = historyArray ? historyArray.filter(item => item.verdict && item.verdict.includes('ДА')) : [];
+      const noItems = historyArray ? historyArray.filter(item => !item.verdict || !item.verdict.includes('ДА')) : [];
 
       // Рендерим строки ДА
       yesItems.forEach(item => {
@@ -1308,7 +1308,7 @@
       historyArray.forEach(item => {
         const logItem = document.createElement('div');
         logItem.className = "flex flex-col gap-1 border-b border-black/10 pb-1 text-[11px] leading-tight";
-        const verdictColor = item.verdict.includes('ДА') ? 'text-green-600' : (item.verdict.includes('НЕТ') ? 'text-red-600' : 'text-amber-600');
+        const verdictColor = (item.verdict && item.verdict.includes('ДА')) ? 'text-green-600' : (item.verdict && item.verdict.includes('НЕТ') ? 'text-red-600' : 'text-amber-600');
         
         logItem.innerHTML = `
           <div class="flex justify-between items-start gap-1">

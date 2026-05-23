@@ -481,8 +481,13 @@ io.on('connection', (socket) => {
           });
         });
 
-        if (room.status === 'PLAYING' && room.options.turnTimerDuration > 0) {
-          socket.emit('turn_timer_tick', { timeLeft: room.turnTimeLeft, duration: room.options.turnTimerDuration });
+        // ПЕРЕЗАПУСК ТАЙМЕРА ПРИ ВОЗВРАТЕ (Если он был сброшен на disconnect)
+        if (room.status === 'PLAYING') {
+          if (!room.turnTimerInterval && room.options.turnTimerDuration > 0) {
+            startTurnTimer(room, cleanCode);
+          } else if (room.options.turnTimerDuration > 0) {
+            socket.emit('turn_timer_tick', { timeLeft: room.turnTimeLeft, duration: room.options.turnTimerDuration });
+          }
         }
       } else {
         room.players.forEach(p => {
