@@ -207,10 +207,22 @@
       <div class="bg-indigo-950/50 p-3 rounded-2xl border-4 border-black space-y-2 text-center transform rotate-[0.5deg]">
         <p class="text-[10px] font-black uppercase text-yellow-300 tracking-wider">🎲 Лень придумывать? Выбери колоду:</p>
         <div class="grid grid-cols-4 gap-1 text-[10px] font-black">
-          <button onclick="getRandomCharacter('people')" class="bg-indigo-900 hover:bg-yellow-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all btn-brutal">ЛЮДИ</button>
-          <button onclick="getRandomCharacter('movies')" class="bg-indigo-900 hover:bg-pink-500 p-1.5 rounded-lg border-2 border-black transition-all btn-brutal">КИНО</button>
-          <button onclick="getRandomCharacter('cartoons')" class="bg-indigo-900 hover:bg-cyan-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all btn-brutal">МУЛЬТ</button>
-          <button onclick="getRandomCharacter('games')" class="bg-indigo-900 hover:bg-green-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all btn-brutal">ИГРЫ</button>
+          <button onclick="getRandomCharacter('people')"
+            class="bg-indigo-900 hover:bg-yellow-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all btn-brutal flex items-center justify-center gap-1">
+            <img src="deck-people.png" class="w-4 h-4 object-contain"> ЛЮДИ
+          </button>
+          <button onclick="getRandomCharacter('movies')"
+            class="bg-indigo-900 hover:bg-pink-500 p-1.5 rounded-lg border-2 border-black transition-all btn-brutal flex items-center justify-center gap-1">
+            <img src="deck-movies.png" class="w-4 h-4 object-contain"> КИНО
+          </button>
+          <button onclick="getRandomCharacter('cartoons')"
+            class="bg-indigo-900 hover:bg-cyan-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all btn-brutal flex items-center justify-center gap-1">
+            <img src="deck-cartoons.png" class="w-4 h-4 object-contain"> МУЛЬТ
+          </button>
+          <button onclick="getRandomCharacter('games')"
+            class="bg-indigo-900 hover:bg-green-400 hover:text-black p-1.5 rounded-lg border-2 border-black transition-all btn-brutal flex items-center justify-center gap-1">
+            <img src="deck-games.png" class="w-4 h-4 object-contain"> ИГРЫ
+          </button>
         </div>
       </div>
 
@@ -303,6 +315,16 @@
           </div>
         </div>
 
+        <div class="relative">
+          <!-- Кусочек скотча, наложенный сверху по центру -->
+          <img src="tape.png"
+            class="absolute -top-4 left-1/2 -translate-x-1/2 w-24 h-auto z-30 drop-shadow-md transform rotate-[-2deg]">
+        
+          <!-- Сама карточка -->
+          <div class="inline-block bg-yellow-400 text-black border-4 border-black px-8 py-6 rounded-2xl ...">
+            ❓ КТО Я? ❓
+          </div>
+        </div>
         <div class="text-center">
           <p class="text-xs font-black uppercase text-indigo-200 mb-1">У тебя на лбу наклеено:</p>
           <div class="inline-block bg-yellow-400 text-black border-4 border-black px-8 py-6 rounded-2xl font-title text-3xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[2deg] animate-pulse">❓ КТО Я? ❓</div>
@@ -1156,6 +1178,7 @@
           card.className = `bg-yellow-400 text-black border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} animate-winner relative`;
           card.innerHTML = `
             <div class="absolute -top-5 -left-3 text-4xl rotate-[-15deg]">👑</div>
+            <img src="stamp-guessed.png" class="absolute right-2 top-2 w-16 h-16 object-contain opacity-85 rotate-[12deg] z-10 pointer-events-none">
             <div class="flex justify-between items-center">
               <div>
                 <p class="text-[10px] font-black uppercase text-amber-950 tracking-wider">Победитель партии!</p>
