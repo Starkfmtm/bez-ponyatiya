@@ -118,7 +118,7 @@ function checkAndResolveVote(room, roomCode) {
     room.votes = { yes: 0, no: 0 };
     room.votedPlayers = [];
 
-    // Передаем ход дальше ТОЛЬКО если большинство ответило «НЕТ»
+    // Передаем ход дальше только при ответе «НЕТ»
     if (!isYes && !isTie) {
       if (room.turnTimeout) clearTimeout(room.turnTimeout);
 
@@ -327,7 +327,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 3. Запуск игры (Глобальный таймер)
+  // 3. Запуск игры (Синхронный плавный таймер)
   socket.on('start_game', (data) => {
     const { roomCode } = data;
     const room = rooms.get(roomCode);
@@ -339,7 +339,7 @@ io.on('connection', (socket) => {
 
     room.status = 'INPUTTING';
     assignTargets(room.players);
-    room.inputTimeLeft = 60;
+    room.inputTimeLeft = 60.0;
 
     room.players.forEach(p => {
       io.to(p.socketId).emit('game_state_update', {
@@ -352,14 +352,14 @@ io.on('connection', (socket) => {
 
     if (room.inputTimerInterval) clearInterval(room.inputTimerInterval);
     room.inputTimerInterval = setInterval(() => {
-      room.inputTimeLeft--;
+      room.inputTimeLeft -= 0.1;
       io.to(roomCode).emit('timer_tick', { timeLeft: room.inputTimeLeft });
 
       if (room.inputTimeLeft <= 0) {
         clearInterval(room.inputTimerInterval);
         room.inputTimerInterval = null;
 
-        // Автозаполнение не заполнивших игроков
+        // Автозаполнение случайными ролями тех участников, кто не успел
         room.players.forEach(p => {
           const target = room.players.find(t => t.socketId === p.targetPlayerId);
           if (target && target.character === null) {
@@ -376,14 +376,14 @@ io.on('connection', (socket) => {
           io.to(p.socketId).emit('game_state_update', {
             status: room.status,
             roomCode: room.roomCode,
-            activePlayerId: nextActivePlayer.socketId,
-            activePlayerHistory: nextActivePlayer.history,
+            activePlayerId: nextActivePlayer ? nextActivePlayer.socketId : null,
+            activePlayerHistory: nextActivePlayer ? nextActivePlayer.history : [],
             myPersonalHistory: p.history,
             players: getMaskedPlayersFor(room, p.socketId)
           });
         });
       }
-    }, 1000);
+    }, 100);
   });
 
   socket.on('get_random_character', (data) => {
@@ -433,7 +433,6 @@ io.on('connection', (socket) => {
         });
       });
     } else {
-      // Обновляем состояние у ВСЕХ игроков, чтобы каждый сразу увидел актуальный статус готовности
       room.players.forEach(p => {
         io.to(p.socketId).emit('game_state_update', {
           status: room.status,
