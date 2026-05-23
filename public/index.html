@@ -237,10 +237,10 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 4: ИГРОВОЙ ПРОЦЕСС                       -->
   <!-- ============================================== -->
-  <main id="screen-game" class="w-full max-w-4xl hidden z-10 transition-all duration-300 transform opacity-0 scale-95 p-2 pointer-events-none relative flex flex-col md:flex-row gap-6 justify-center items-start">
+  <main id="screen-game" class="w-full max-w-md hidden z-10 transition-all duration-300 transform opacity-0 scale-95 p-2 pointer-events-none relative">
     
     <!-- ЛЕВАЯ КОЛОНКА (Основная карточка игры) - СТРОГО центрированная max-w-md -->
-    <div class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative space-y-6 pointer-events-auto animate-pop-in">
+    <div class="w-full bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative space-y-6 pointer-events-auto animate-pop-in">
       
       <!-- Имя того, кто угадывает -->
       <div class="text-center mb-4 border-b-4 border-black/20 pb-4">
@@ -340,11 +340,11 @@
 
     </div> <!-- Конец основной карточки -->
 
-    <!-- ПРАВАЯ КОЛОНКА (Сбоку на ПК, и снизу на мобильных устройствах) - СТРОГО max-w-xs -->
-    <div class="relative md:absolute md:left-[calc(100%+1.5rem)] md:top-0 w-full md:w-72 mt-6 md:mt-0 space-y-6 pointer-events-none shrink-0">
+    <!-- ПРАВАЯ КОЛОНКА (Сбоку на ПК посредством абсолютного смещения, сохраняя центированность основы) - СТРОГО max-w-xs -->
+    <div class="relative md:absolute md:left-full md:top-0 md:ml-6 w-full md:w-72 mt-6 md:mt-0 space-y-6 pointer-events-auto flex flex-col animate-pop-in">
       
       <!-- ЛИЧНЫЙ БЛОКНОТ ИГРОКА (Дизайн блокнота на спирали) -->
-      <div id="my-personal-history-block" class="hidden pointer-events-auto animate-pop-in">
+      <div id="my-personal-history-block" class="hidden pointer-events-auto">
         <div class="bg-amber-50 text-black border-4 border-black p-4 rounded-3xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden min-h-[200px]">
           <!-- Имитация пружины сверху блокнота -->
           <div class="absolute top-0 inset-x-0 h-4 bg-indigo-950 flex justify-around items-center border-b-4 border-black z-20">
@@ -365,7 +365,7 @@
       </div>
 
       <!-- ОТДЕЛЬНАЯ ПАНЕЛЬ РЕАКЦИЙ (Дизайн пульта управления) -->
-      <div id="reaction-panel" class="hidden bg-cyan-400 border-4 border-black p-4 rounded-3xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black font-black space-y-3 pointer-events-auto animate-pop-in">
+      <div id="reaction-panel" class="hidden bg-cyan-400 border-4 border-black p-4 rounded-3xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black font-black space-y-3 pointer-events-auto">
         <div class="text-center uppercase tracking-widest text-[10px] text-cyan-950 border-b-2 border-cyan-500/40 pb-1.5">
           📟 Панель Реакций
         </div>
