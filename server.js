@@ -23,6 +23,7 @@ function isValidUsername(name) {
   return trimmed.length >= 1 && trimmed.length <= 15;
 }
 
+// Поиск комнаты по коду
 function isValidRoomCode(code) {
   if (typeof code !== 'string') return false;
   const trimmed = code.trim();
@@ -99,7 +100,6 @@ function startTurnTimer(room, roomCode) {
   room.turnTimeLeft = room.options.turnTimerDuration;
   const duration = room.options.turnTimerDuration;
 
-  // Уникальный токен сессии таймера для избежания наложения интервалов
   const thisTimerId = Math.random();
   room.activeTurnTimerId = thisTimerId;
 
@@ -108,7 +108,6 @@ function startTurnTimer(room, roomCode) {
   const intervalId = setInterval(() => {
     const currentRoom = rooms.get(roomCode);
     
-    // Если комната удалена, статус изменился или стартовал более новый таймер — самоликвидируемся
     if (!currentRoom || currentRoom.status !== 'PLAYING' || currentRoom.activeTurnTimerId !== thisTimerId) {
       clearInterval(intervalId);
       return;
@@ -1016,7 +1015,7 @@ const DECKS = {
   ],
   cartoons: [
     'Губка Боб', 'Шрек', 'Пикачу', 'Наруто', 'Миньон', 'Гомер Симпсон', 'Эльза (Холодное сердце)',
-    'Микки Маус', 'Багз Банни', 'Скуби-Ду', 'Сейлор Мун', 'Кунг-фу Панда (По)', 'Беззубик', 'Чебурашка',
+    'Микки Маус', 'Багз Банни', 'Скуби-Ду', 'Сейлор Moon', 'Кунг-фу Панда (По)', 'Беззубик', 'Чебурашка',
     'Волк (Ну, погоди!)', 'Маша (Маша и Медведь)', 'Фиона', 'Осел (Шрек)', 'Кот в сапогах',
     'Симба (Король Lев)', 'Аладдин', 'Жасмин', 'Джинн', 'Русалочка (Ариэль)', 'Рапунцель',
     'Стив (Майнкрафт)', 'Лило', 'Стич', 'Гуфи'

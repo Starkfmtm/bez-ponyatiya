@@ -99,13 +99,6 @@
     .animate-winner-float {
       animation: winner-float 3s ease-in-out infinite;
     }
-
-    /* РЕАЛИСТИЧНАЯ СТИЛИЗАЦИЯ БУМАГИ В ЛИНЕЙКУ */
-    .ruled-page {
-      background: #fffef2;
-      background-image: linear-gradient(#b4d3e6 1.1px, transparent 1.1px);
-      background-size: 100% 28px;
-    }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 selection:bg-pink-500 selection:text-white relative overflow-x-hidden">
@@ -306,98 +299,92 @@
         <h2 id="game-active-player" class="text-2xl font-black text-yellow-300 uppercase tracking-wide drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">---</h2>
       </div>
 
-      <!-- БЛОК А: Роль ОТВЕЧАЮЩЕГО -->
-      <section id="game-answerer-zone" class="space-y-6 hidden">
-        <div id="guess-verification-block" class="bg-yellow-400 text-black border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1deg] hidden space-y-4 font-black">
-          <h3 class="font-title text-lg font-black uppercase text-center">Проверка догадки!</h3>
-          <p class="text-sm font-bold text-center">
-            <span id="guessing-player-name" class="underline">Игрок</span> думает, что он:<br>
-            <span id="guessing-player-answer" class="text-xl font-black uppercase text-pink-600 block mt-1">???</span>
-          </p>
-          <p class="text-xs font-black text-center uppercase tracking-wider">Настоящая роль: <span id="actual-role-display" class="bg-black text-white px-2 py-1 rounded">???</span></p>
-          
-          <div class="grid grid-cols-2 gap-2 pt-2">
-            <button onclick="submitGuessVerdict(true)" class="bg-green-400 hover:bg-green-300 border-2 border-black font-black text-sm py-2 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] btn-brutal">✅ ЗАСЧИТАТЬ</button>
-            <button onclick="submitGuessVerdict(false)" class="bg-red-400 hover:bg-red-300 border-2 border-black font-black text-sm py-2 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] btn-brutal">❌ ОТКЛОНИТЬ</button>
+      <!-- КАРТОЧКА ВЕРИФИКАЦИИ ДОГАДКИ (ПОЛНОСТЬЮ ИЗОЛИРУЕТ ЭКРАН) -->
+      <div id="guess-verification-block" class="bg-yellow-400 text-black border-4 border-black p-6 rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transform rotate-[1deg] hidden space-y-6 font-black z-30 relative">
+        <h3 class="font-title text-xl font-black uppercase text-center">Проверка догадки!</h3>
+        <p class="text-base font-bold text-center">
+          Игрок <span id="guessing-player-name" class="underline">Игрок</span> считает, что он:<br>
+          <span id="guessing-player-answer" class="text-2xl font-black uppercase text-pink-600 block mt-2">???</span>
+        </p>
+        <p class="text-sm font-black text-center uppercase tracking-wider">Настоящая роль: <span id="actual-role-display" class="bg-black text-white px-3 py-1 rounded">???</span></p>
+        
+        <div class="grid grid-cols-2 gap-4 pt-2">
+          <button onclick="submitGuessVerdict(true)" class="bg-green-400 hover:bg-green-300 border-4 border-black font-black text-base py-3 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none btn-brutal">✅ ЗАСЧИТАТЬ</button>
+          <button onclick="submitGuessVerdict(false)" class="bg-red-400 hover:bg-red-300 border-4 border-black font-black text-base py-3 rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none btn-brutal">❌ ОТКЛОНИТЬ</button>
+        </div>
+      </div>
+
+      <!-- ВСЕ ОСТАЛЬНОЕ ИГРОВОЕ СОДЕРЖИМОЕ (СКРЫВАЕТСЯ ВО ВРЕМЯ ВЕРИФИКАЦИИ) -->
+      <div id="game-active-round-content" class="space-y-6">
+        
+        <!-- БЛОК А: Роль ОТВЕЧАЮЩЕГО -->
+        <section id="game-answerer-zone" class="space-y-6 hidden">
+          <div class="text-center">
+            <p class="text-xs font-black uppercase text-indigo-200 mb-1">Его тайный персонаж:</p>
+            <div id="secret-character-display" class="inline-block bg-pink-500 border-4 border-black px-6 py-3 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[-1.5deg]">---</div>
           </div>
-        </div>
+          
+          <div class="bg-indigo-950/80 p-4 rounded-2xl border-4 border-black text-center transform rotate-[0.5deg]">
+            <p class="text-xs font-black uppercase text-cyan-400 mb-1">Вопрос на лбу:</p>
+            <p id="game-question-text" class="font-black text-lg text-white">Ожидаем вопрос...</p>
+          </div>
 
-        <div class="text-center">
-          <p class="text-xs font-black uppercase text-indigo-200 mb-1">Его тайный персонаж:</p>
-          <div id="secret-character-display" class="inline-block bg-pink-500 border-4 border-black px-6 py-3 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[-1.5deg]">---</div>
-        </div>
-        
-        <div class="bg-indigo-950/80 p-4 rounded-2xl border-4 border-black text-center transform rotate-[0.5deg]">
-          <p class="text-xs font-black uppercase text-cyan-400 mb-1">Вопрос на лбу:</p>
-          <p id="game-question-text" class="font-black text-lg text-white">Ожидаем вопрос...</p>
-        </div>
+          <div id="voting-buttons-grid" class="grid grid-cols-3 gap-2 pt-2 hidden">
+            <button onclick="sendVote('yes')" class="bg-green-400 hover:bg-green-300 text-black font-black text-sm py-4 rounded-xl border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transform rotate-[-1.5deg] transition-all btn-brutal">👍 ДА</button>
+            <button onclick="sendVote('dont_know')" class="bg-amber-400 hover:bg-amber-300 text-black font-black text-sm py-4 rounded-xl border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transform rotate-[0.5deg] transition-all btn-brutal">🤷 ХЗ</button>
+            <button onclick="sendVote('no')" class="bg-red-500 hover:bg-red-400 text-white font-black text-sm py-4 rounded-xl border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transform rotate-[1.5deg] transition-all btn-brutal">👎 НЕТ</button>
+          </div>
+          
+          <div id="vote-progress-status" class="text-center text-xs font-bold text-indigo-300 hidden">
+            Проголосовало: <span id="voted-count-display">0</span>/<span id="voted-total-display">0</span>
+          </div>
+        </section>
 
-        <div id="voting-buttons-grid" class="grid grid-cols-3 gap-2 pt-2 hidden">
-          <button onclick="sendVote('yes')" class="bg-green-400 hover:bg-green-300 text-black font-black text-sm py-4 rounded-xl border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transform rotate-[-1.5deg] transition-all btn-brutal">👍 ДА</button>
-          <button onclick="sendVote('dont_know')" class="bg-amber-400 hover:bg-amber-300 text-black font-black text-sm py-4 rounded-xl border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transform rotate-[0.5deg] transition-all btn-brutal">🤷 ХЗ</button>
-          <button onclick="sendVote('no')" class="bg-red-500 hover:bg-red-400 text-white font-black text-sm py-4 rounded-xl border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transform rotate-[1.5deg] transition-all btn-brutal">👎 НЕТ</button>
-        </div>
-        
-        <div id="vote-progress-status" class="text-center text-xs font-bold text-indigo-300 hidden">
-          Проголосовало: <span id="voted-count-display">0</span>/<span id="voted-total-display">0</span>
-        </div>
-      </section>
-
-      <!-- БЛОК Б: Роль ОТГАДЫВАЮЩЕГО -->
-      <section id="game-guesser-zone" class="space-y-6 hidden">
-        <div id="guess-waiting-block" class="bg-indigo-950/80 p-6 rounded-2xl border-4 border-black text-center hidden transform rotate-[-0.5deg] space-y-6">
-          <div class="flex justify-center relative">
-            <div class="absolute w-28 h-28 bg-indigo-900/50 rounded-full border-4 border-dashed border-indigo-800/80 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
-            <div class="w-28 h-28 relative z-10 animate-wiggle">
-              <img src="mascot.png" class="w-full h-full object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" alt="Маскот ожидания">
+        <!-- БЛОК Б: Роль ОТГАДЫВАЮЩЕГО -->
+        <section id="game-guesser-zone" class="space-y-6 hidden">
+          <div class="text-center">
+            <div class="inline-block bg-yellow-400 text-black border-4 border-black px-8 py-6 rounded-2xl font-title text-3xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[2deg] animate-pulse">
+              ❓ КТО Я? ❓
             </div>
           </div>
-          <div class="space-y-1">
-            <p class="text-xs font-black uppercase text-pink-500 animate-pulse">Твоя догадка отправлена на проверку!</p>
-            <p class="font-black text-sm text-white">Остальные игроки решают, засчитать ли твой ответ...</p>
+          
+          <div id="question-input-block" class="transform rotate-[-0.5deg]">
+            <label for="question-input" class="block text-xs font-black uppercase tracking-widest text-cyan-400 mb-2">Задай свой вопрос игрокам:</label>
+            <input type="text" id="question-input" maxlength="120" placeholder="Например: Я реальный человек?" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-pink-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+          </div>
+
+          <div id="live-votes-results" class="bg-indigo-950/80 p-4 rounded-2xl border-4 border-black text-center hidden">
+            <p class="text-xs font-black uppercase text-yellow-300 mb-2">Голоса зала:</p>
+            <div class="grid grid-cols-3 gap-1 text-sm font-black">
+              <div class="text-green-400 font-black text-lg">ДА: <span id="vote-yes-count">0</span></div>
+              <div class="text-amber-400 font-black text-lg">ХЗ: <span id="vote-dontknow-count">0</span></div>
+              <div class="text-red-400 font-black text-lg">НЕТ: <span id="vote-no-count">0</span></div>
+            </div>
+            <p id="vote-verdict-text" class="text-xs font-black uppercase text-white mt-2 hidden"></p>
+          </div>
+
+          <div class="space-y-3 pt-2">
+            <button id="btn-ask" class="w-full bg-cyan-400 hover:bg-cyan-300 text-black font-black text-lg py-3 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider btn-brutal">📢 Отправить вопрос</button>
+            <button id="btn-guess-attempt" class="w-full bg-pink-500 hover:bg-pink-400 text-white font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider btn-brutal">🎯 Я знаю, кто я!</button>
+          </div>
+        </section>
+
+        <!-- ИСТОРИЯ ВОПРОСОВ -->
+        <div id="game-history-block" class="hidden border-t-4 border-black/40 pt-4">
+          <div class="bg-indigo-950/60 border-4 border-black p-3 rounded-2xl text-xs space-y-2">
+            <h4 id="game-history-title" class="font-black text-[10px] uppercase text-yellow-400 tracking-wider">История его вопросов:</h4>
+            <div id="game-history-log" class="max-h-28 overflow-y-auto space-y-1.5 scrollbar-thin"></div>
           </div>
         </div>
 
-        <div class="text-center">
-          <div class="inline-block bg-yellow-400 text-black border-4 border-black px-8 py-6 rounded-2xl font-title text-3xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[2deg] animate-pulse">
-            ❓ КТО Я? ❓
-          </div>
-        </div>
-        
-        <div id="question-input-block" class="transform rotate-[-0.5deg]">
-          <label for="question-input" class="block text-xs font-black uppercase tracking-widest text-cyan-400 mb-2">Задай свой вопрос игрокам:</label>
-          <input type="text" id="question-input" maxlength="120" placeholder="Например: Я реальный человек?" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-pink-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
-        </div>
-
-        <div id="live-votes-results" class="bg-indigo-950/80 p-4 rounded-2xl border-4 border-black text-center hidden">
-          <p class="text-xs font-black uppercase text-yellow-300 mb-2">Голоса зала:</p>
-          <div class="grid grid-cols-3 gap-1 text-sm font-black">
-            <div class="text-green-400 font-black text-lg">ДА: <span id="vote-yes-count">0</span></div>
-            <div class="text-amber-400 font-black text-lg">ХЗ: <span id="vote-dontknow-count">0</span></div>
-            <div class="text-red-400 font-black text-lg">НЕТ: <span id="vote-no-count">0</span></div>
-          </div>
-          <p id="vote-verdict-text" class="text-xs font-black uppercase text-white mt-2 hidden"></p>
-        </div>
-
-        <div class="space-y-3 pt-2">
-          <button id="btn-ask" class="w-full bg-cyan-400 hover:bg-cyan-300 text-black font-black text-lg py-3 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider btn-brutal">📢 Отправить вопрос</button>
-          <button id="btn-guess-attempt" class="w-full bg-pink-500 hover:bg-pink-400 text-white font-black text-xl py-4 px-6 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider btn-brutal">🎯 Я знаю, кто я!</button>
-        </div>
-      </section>
-
-      <div id="game-history-block" class="hidden border-t-4 border-black/40 pt-4">
-        <div class="bg-indigo-950/60 border-4 border-black p-3 rounded-2xl text-xs space-y-2">
-          <h4 id="game-history-title" class="font-black text-[10px] uppercase text-yellow-400 tracking-wider">История его вопросов:</h4>
-          <div id="game-history-log" class="max-h-28 overflow-y-auto space-y-1.5 scrollbar-thin"></div>
-        </div>
       </div>
 
     </div>
 
-    <!-- ПРАВАЯ КОЛОНКА (УВЕЛИЧЕНА ШИРИНА ДО 96 ДЛЯ ШИРОКИХ ЭКРАНОВ) -->
+    <!-- ПРАВАЯ КОЛОНКА (ШИРИНА 96) -->
     <div class="relative md:absolute md:left-[calc(100%+1.5rem)] md:top-0 w-full md:w-96 mt-6 md:mt-0 space-y-6 pointer-events-auto flex flex-col animate-pop-in">
       
-      <!-- ЛИЧНЫЙ БЛОКНОТ ИГРОКА (ВЕРТИКАЛЬНЫЙ С ДВУМЯ СЕКЦИЯМИ И ЛИНОВКОЙ) -->
+      <!-- ЛИЧНЫЙ БЛОКНОТ ИГРОКА (ВЕРТИКАЛЬНЫЙ, С СИНИМИ ТЕТРАДНЫМИ ЛИНЕЙКАМИ) -->
       <div id="my-personal-history-block" class="hidden pointer-events-auto animate-pop-in">
         <div class="bg-amber-50 text-black border-4 border-black p-4 rounded-3xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden min-h-[220px]">
           <div class="absolute top-0 inset-x-0 h-4 bg-indigo-950 flex justify-around items-center border-b-4 border-black z-20">
@@ -412,15 +399,15 @@
           <div class="pl-6 pt-3 relative z-10 font-bold">
             <h4 class="font-title text-[11px] font-black uppercase text-indigo-900 tracking-wider mb-2">📝 Мой Блокнот (Кто я?):</h4>
             <div class="space-y-4 text-[11px] leading-tight text-stone-800">
-              <!-- Секция ДА (Разлинованная бумага сверху) -->
+              <!-- Секция ДА -->
               <div class="bg-green-100/60 p-2.5 rounded-lg border border-green-300">
                 <span class="font-black text-green-700 block mb-1">ДА 👍</span>
-                <div id="notepad-yes-log" class="ruled-page min-h-[90px] max-h-40 overflow-y-auto px-2 scrollbar-none font-semibold"></div>
+                <div id="notepad-yes-log" class="bg-[#fffef2] min-h-[90px] max-h-40 overflow-y-auto px-2 scrollbar-none font-semibold"></div>
               </div>
-              <!-- Секция НЕТ/ХЗ (Разлинованная бумага снизу) -->
+              <!-- Секция НЕТ/ХЗ -->
               <div class="bg-red-100/60 p-2.5 rounded-lg border border-red-300">
                 <span class="font-black text-red-700 block mb-1">НЕТ / ХЗ 👎 🤷</span>
-                <div id="notepad-no-log" class="ruled-page min-h-[90px] max-h-40 overflow-y-auto px-2 scrollbar-none font-semibold"></div>
+                <div id="notepad-no-log" class="bg-[#fffef2] min-h-[90px] max-h-40 overflow-y-auto px-2 scrollbar-none font-semibold"></div>
               </div>
             </div>
           </div>
@@ -694,6 +681,7 @@
     // Элементы Game-экрана
     const gameActivePlayer = document.getElementById('game-active-player');
     const gameAnswererZone = document.getElementById('game-answerer-zone');
+    const gameActiveRoundContent = document.getElementById('game-active-round-content');
     const gameGuesserZone = document.getElementById('game-guesser-zone');
     const secretCharacterDisplay = document.getElementById('secret-character-display');
     const gameQuestionText = document.getElementById('game-question-text');
@@ -867,6 +855,7 @@
       playSound('click');
       socket.emit('submit_guess_verdict', { roomCode: currentRoomCode, isCorrect });
       document.getElementById('guess-verification-block').classList.add('hidden');
+      if (gameActiveRoundContent) gameActiveRoundContent.classList.remove('hidden');
     }
     window.submitGuessVerdict = submitGuessVerdict;
 
@@ -1004,6 +993,7 @@
         const activePlayer = data.players.find(p => p.socketId === activePlayerId);
 
         document.getElementById('guess-verification-block').classList.add('hidden');
+        if (gameActiveRoundContent) gameActiveRoundContent.classList.remove('hidden');
         document.getElementById('guess-waiting-block').classList.add('hidden');
         
         document.getElementById('btn-ask').disabled = false;
@@ -1214,6 +1204,8 @@
       document.getElementById('guessing-player-answer').textContent = data.guess;
       document.getElementById('actual-role-display').textContent = data.actualCharacter;
       
+      // Скрыть абсолютно все лишние элементы на экране проверяющего
+      if (gameActiveRoundContent) gameActiveRoundContent.classList.add('hidden');
       verBlock.classList.remove('hidden');
     });
 
@@ -1244,50 +1236,51 @@
       setTimeout(() => { el.remove(); }, 2500);
     });
 
-    // ОТРИСОВКА БЛОКНОТА (РАЗДЕЛЕННОГО ПО ВЕРТИКАЛИ С ЛИНОВКОЙ)
+    // ОТРИСОВКА БЛОКНОТА (РАЗДЕЛЕННОГО ПО ВЕРТИКАЛИ С РЕАЛЬНЫМИ HTML ЛИНИЯМИ)
     function renderNotepad(historyArray) {
       const yesLog = document.getElementById('notepad-yes-log');
       const noLog = document.getElementById('notepad-no-log');
       yesLog.innerHTML = '';
       noLog.innerHTML = '';
 
-      if (!historyArray || historyArray.length === 0) {
-        yesLog.innerHTML = '<div class="text-[10px] text-stone-400 italic px-1" style="line-height: 28px;">Пусто...</div>';
-        noLog.innerHTML = '<div class="text-[10px] text-stone-400 italic px-1" style="line-height: 28px;">Пусто...</div>';
-        fillWithLines(yesLog, 2);
-        fillWithLines(noLog, 2);
-        return;
-      }
+      const yesItems = historyArray ? historyArray.filter(item => item.verdict.includes('ДА')) : [];
+      const noItems = historyArray ? historyArray.filter(item => !item.verdict.includes('ДА')) : [];
 
-      historyArray.forEach(item => {
+      // Рендерим строки ДА
+      yesItems.forEach(item => {
         const itemEl = document.createElement('div');
-        itemEl.className = "text-[11px] text-stone-900 break-words font-semibold border-b border-black/5 px-1 truncate";
+        itemEl.className = "text-[11px] text-stone-900 font-semibold border-b border-stone-300/70 truncate px-1";
         itemEl.style.lineHeight = "28px";
         itemEl.style.height = "28px";
         itemEl.textContent = `• ${item.question}`;
-
-        if (item.verdict.includes('ДА')) {
-          yesLog.appendChild(itemEl);
-        } else {
-          noLog.appendChild(itemEl);
-        }
+        yesLog.appendChild(itemEl);
       });
 
-      // Заполнить пустые слоты тетрадными линиями для визуального баланса
-      fillWithLines(yesLog, 3);
-      fillWithLines(noLog, 3);
+      // Рендерим строки НЕТ
+      noItems.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = "text-[11px] text-stone-900 font-semibold border-b border-stone-300/70 truncate px-1";
+        itemEl.style.lineHeight = "28px";
+        itemEl.style.height = "28px";
+        itemEl.textContent = `• ${item.question}`;
+        noLog.appendChild(itemEl);
+      });
+
+      // Дорисовать недостающие пустые линии до минимального количества (5 штук)
+      fillWithLines(yesLog, Math.max(5, yesItems.length));
+      fillWithLines(noLog, Math.max(5, noItems.length));
 
       yesLog.scrollTop = yesLog.scrollHeight;
       noLog.scrollTop = noLog.scrollHeight;
     }
 
-    function fillWithLines(element, minCount) {
+    function fillWithLines(element, targetCount) {
       const currentCount = element.children.length;
-      if (currentCount < minCount) {
-        for (let i = 0; i < (minCount - currentCount); i++) {
+      if (currentCount < targetCount) {
+        for (let i = 0; i < (targetCount - currentCount); i++) {
           const emptyLine = document.createElement('div');
           emptyLine.style.height = "28px";
-          emptyLine.className = "border-b border-black/5";
+          emptyLine.className = "border-b border-stone-300/70";
           element.appendChild(emptyLine);
         }
       }
