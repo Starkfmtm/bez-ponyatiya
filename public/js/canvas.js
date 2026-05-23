@@ -84,3 +84,10 @@ export function drawSegment(x1, y1, x2, y2, color) {
   bgCtx.stroke();
   bgCtx.closePath();
 }
+
+// Новая экспортируемая функция очистки холста
+export function clearBgCanvas() {
+  if (bgCtx && bgCanvas) {
+    bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+  }
+}
