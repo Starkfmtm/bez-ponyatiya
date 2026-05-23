@@ -3,6 +3,8 @@ const { clearRoomTimers, startTurnTimer, passTurnToNext } = require('../managers
 const { isValidUsername, isValidRoomCode, isValidCharacter, isValidQuestion, isValidGuess } = require('../utils/validators');
 const DECKS = require('../utils/decks');
 
+const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849', '#38bdf8', '#fb7185'];
+
 function initSockets(io) {
   io.on('connection', (socket) => {
     console.log(`Новое подключение: ${socket.id}`);
@@ -43,7 +45,7 @@ function initSockets(io) {
             questionsCount: 0,
             reactionsCount: 0,
             history: [],
-            color: playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849', '#38bdf8', '#fb7185'][0],
+            color: playerColors[0],
             online: true
           }
         ],
@@ -170,7 +172,6 @@ function initSockets(io) {
         return socket.emit('error_message', 'Это имя уже занято!');
       }
 
-      const colorsList = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849', '#38bdf8', '#fb7185'];
       const newPlayer = {
         socketId: socket.id,
         name: trimmedName,
@@ -181,7 +182,7 @@ function initSockets(io) {
         hasGuessed: false,
         questionsCount: 0,
         history: [],
-        color: colorsList[room.players.length % colorsList.length],
+        color: playerColors[room.players.length % playerColors.length],
         online: true
       };
 
