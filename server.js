@@ -31,7 +31,6 @@ function assignTargets(players) {
   const len = players.length;
   for (let i = 0; i < len; i++) {
     const targetIndex = (i + 1) % len;
-    players[i].targetPlayerId = players[targetIndex].socketId;
     players[i].targetName = players[targetIndex].name;
   }
 }
@@ -47,7 +46,7 @@ function getMaskedPlayersFor(room, socketId) {
       maskedCharacter = isSelf ? '❓' : p.character;
     }
 
-    const target = room.players.find(t => t.socketId === p.targetPlayerId);
+    const target = room.players.find(t => t.name === p.targetName);
     const hasSubmitted = target ? target.character !== null : false;
 
     return {
@@ -327,7 +326,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 3. Запуск игры (Синхронный плавный таймер)
+  // 3. Запуск игры (Сбалансированный стабильный таймер)
   socket.on('start_game', (data) => {
     const { roomCode } = data;
     const room = rooms.get(roomCode);
@@ -339,7 +338,7 @@ io.on('connection', (socket) => {
 
     room.status = 'INPUTTING';
     assignTargets(room.players);
-    room.inputTimeLeft = 60.0;
+    room.inputTimeLeft = 60;
 
     room.players.forEach(p => {
       io.to(p.socketId).emit('game_state_update', {
@@ -352,16 +351,16 @@ io.on('connection', (socket) => {
 
     if (room.inputTimerInterval) clearInterval(room.inputTimerInterval);
     room.inputTimerInterval = setInterval(() => {
-      room.inputTimeLeft -= 0.1;
+      room.inputTimeLeft--;
       io.to(roomCode).emit('timer_tick', { timeLeft: room.inputTimeLeft });
 
       if (room.inputTimeLeft <= 0) {
         clearInterval(room.inputTimerInterval);
         room.inputTimerInterval = null;
 
-        // Автозаполнение случайными ролями тех участников, кто не успел
+        // Автозаполнение ролей не успевшим игрокам
         room.players.forEach(p => {
-          const target = room.players.find(t => t.socketId === p.targetPlayerId);
+          const target = room.players.find(t => t.name === p.targetName);
           if (target && target.character === null) {
             const randChar = DECKS.people[Math.floor(Math.random() * DECKS.people.length)];
             target.character = randChar;
@@ -376,14 +375,14 @@ io.on('connection', (socket) => {
           io.to(p.socketId).emit('game_state_update', {
             status: room.status,
             roomCode: room.roomCode,
-            activePlayerId: nextActivePlayer ? nextActivePlayer.socketId : null,
-            activePlayerHistory: nextActivePlayer ? nextActivePlayer.history : [],
+            activePlayerId: nextActivePlayer.socketId,
+            activePlayerHistory: nextActivePlayer.history,
             myPersonalHistory: p.history,
             players: getMaskedPlayersFor(room, p.socketId)
           });
         });
       }
-    }, 100);
+    }, 1000);
   });
 
   socket.on('get_random_character', (data) => {
@@ -408,7 +407,8 @@ io.on('connection', (socket) => {
     const currentPlayer = room.players.find(p => p.socketId === socket.id);
     if (!currentPlayer) return;
 
-    const targetPlayer = room.players.find(p => p.socketId === currentPlayer.targetPlayerId);
+    // Поиск по имени, полностью защищенный от смены socketId при переподключениях
+    const targetPlayer = room.players.find(p => p.name === currentPlayer.targetName);
     if (targetPlayer) targetPlayer.character = character.trim();
 
     const allSubmitted = room.players.every(p => p.character !== null);

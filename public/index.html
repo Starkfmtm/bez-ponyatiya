@@ -162,7 +162,7 @@
   <!-- ЭКРАН 3: ЗАГАДЫВАНИЕ (ВВОД СЛОВ)               -->
   <!-- ============================================== -->
   <main id="screen-input" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative overflow-hidden hidden z-10 transition-all duration-300 transform opacity-0 scale-95">
-    <div class="absolute top-0 left-0 w-full h-3 bg-black/40"><div id="timer-bar" class="h-full bg-pink-500 transition-all duration-100 ease-linear" style="width: 100%;"></div></div>
+    <div class="absolute top-0 left-0 w-full h-3 bg-black/40"><div id="timer-bar" class="h-full bg-pink-500 transition-all duration-1000 ease-linear" style="width: 100%;"></div></div>
     
     <header class="text-center mt-2 mb-4">
       <span class="text-xs font-black uppercase tracking-widest text-indigo-300">Этап первый</span>
@@ -733,7 +733,7 @@
       setupBrush();
     });
 
-    // СИНХРОНИЗАЦИЯ СЕРВЕРНОГО ТАЙМЕРА (10 обновлений в секунду для максимальной плавности)
+    // СИНХРОНИЗАЦИЯ СЕРВЕРНОГО ТАЙМЕРА (Плавная 1-секундная прокрутка на клиенте)
     socket.on('timer_tick', (data) => {
       const percentage = (data.timeLeft / 60) * 100;
       timerBar.style.width = percentage + '%';
