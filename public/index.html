@@ -269,9 +269,9 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 4: ИГРОВОЙ ПРОЦЕСС                       -->
   <!-- ============================================== -->
-  <main id="screen-game" class="w-full max-w-md hidden z-10 transition-all duration-300 transform opacity-0 scale-95 p-2 pointer-events-none relative mx-auto">
+  <main id="screen-game" class="w-full max-w-md hidden z-10 transition-all duration-300 transform opacity-0 scale-95 p-2 pointer-events-none relative mx-auto flex flex-col items-center">
     
-    <!-- Основная карточка игры (Perfectly Centered because parent is max-w-md mx-auto) -->
+    <!-- Основная карточка игры (Perfect Centered) -->
     <div class="w-full bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative space-y-6 pointer-events-auto animate-pop-in">
       
       <!-- Имя того, кто угадывает -->
@@ -336,7 +336,7 @@
         </div>
 
         <div class="text-center">
-          <!-- Желтая плашка с текстовым оформлением (СКОТЧ И ДУБЛИКАТЫ ПОЛНОСТЬЮ ВЫРЕЗАНЫ) -->
+          <!-- Желтая плашка с текстовым оформлением (СКОТЧ ПОЛНОСТЬЮ УБРАН) -->
           <div class="inline-block bg-yellow-400 text-black border-4 border-black px-8 py-6 rounded-2xl font-title text-3xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[2deg] animate-pulse">
             ❓ КТО Я? ❓
           </div>
@@ -374,7 +374,7 @@
 
     </div> <!-- Конец основной карточки -->
 
-    <!-- ПРАВАЯ КОЛОНКА (Сбоку на ПК посредством абсолютного смещения, гарантируя 100% центрированность основы) - СТРОГО max-w-xs -->
+    <!-- ПРАВАЯ КОЛОНКА (Сбоку на ПК посредством абсолютного позиционирования, гарантируя 100% центрированность основы) - СТРОГО max-w-xs -->
     <div class="relative md:absolute md:left-[calc(100%+1.5rem)] md:top-0 w-full md:w-72 mt-6 md:mt-0 space-y-6 pointer-events-auto flex flex-col animate-pop-in">
       
       <!-- ЛИЧНЫЙ БЛОКНОТ ИГРОКА (Дизайн блокнота на спирали) -->
@@ -419,7 +419,7 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 5: ФИНАЛ (РЕЗУЛЬТАТЫ ИГРЫ)               -->
   <!-- ============================================== -->
-  <main id="screen-results" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden transition-all duration-300 transform opacity-0 scale-95 z-10">
+  <main id="screen-results" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative hidden transition-all duration-300 transform opacity-0 scale-95 z-10 animate-pop-in">
     
     <!-- Крупный ДИНАМИЧЕСКИЙ маскот -->
     <div class="flex justify-center mb-6 relative">
@@ -1190,22 +1190,24 @@
         
         if (isWinner) {
           // Карточка победителя с анимацией бесконечного парения winner-float
-          card.className = `bg-yellow-400 text-black border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} relative animate-bounce-pop animate-winner-float`;
+          card.className = `bg-yellow-400 text-black border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} relative animate-bounce-pop`;
           card.style.animationDelay = `${index * 150}ms`;
           card.style.opacity = '0';
           card.style.animationFillMode = 'forwards';
           
           card.innerHTML = `
-            <div class="absolute -top-5 -left-3 text-4xl rotate-[-15deg]">👑</div>
-            <div class="flex justify-between items-center relative z-0">
-              <div>
-                <p class="text-[10px] font-black uppercase text-amber-950 tracking-wider">Победитель партии!</p>
-                <h3 class="font-title text-xl font-black uppercase leading-tight">${player.name} ${player.name === myName ? '(Ты)' : ''}</h3>
-                <p class="text-xs font-bold opacity-80">Угадал роль: <span class="underline font-black">${player.character}</span></p>
-                ${awardBadge}
-              </div>
-              <div class="shrink-0 ml-2">
-                <span class="bg-black text-yellow-400 font-black px-2.5 py-1 rounded-full text-[10px] uppercase border-2 border-black">ЧЕМПИОН</span>
+            <div class="animate-winner-float w-full h-full">
+              <div class="absolute -top-5 -left-3 text-4xl rotate-[-15deg]">👑</div>
+              <div class="flex justify-between items-center relative z-0">
+                <div>
+                  <p class="text-[10px] font-black uppercase text-amber-950 tracking-wider">Победитель партии!</p>
+                  <h3 class="font-title text-xl font-black uppercase leading-tight">${player.name} ${player.name === myName ? '(Ты)' : ''}</h3>
+                  <p class="text-xs font-bold opacity-80">Угадал роль: <span class="underline font-black">${player.character}</span></p>
+                  ${awardBadge}
+                </div>
+                <div class="shrink-0 ml-2">
+                  <span class="bg-black text-yellow-400 font-black px-2.5 py-1 rounded-full text-[10px] uppercase border-2 border-black">ЧЕМПИОН</span>
+                </div>
               </div>
             </div>
           `;
