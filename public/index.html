@@ -82,6 +82,17 @@
     .animate-pop-in {
       animation: pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
+
+    /* Анимация удара штампом («Slam Stamp») */
+    @keyframes stamp-slam {
+      0% { transform: scale(3.5) rotate(35deg); opacity: 0; }
+      70% { transform: scale(1) rotate(10deg); opacity: 0.95; }
+      85% { transform: scale(1.12) rotate(15deg); }
+      100% { transform: scale(1) rotate(12deg); opacity: 0.9; }
+    }
+    .animate-stamp {
+      animation: stamp-slam 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 selection:bg-pink-500 selection:text-white relative overflow-x-hidden">
@@ -95,7 +106,7 @@
   </button>
 
   <!-- УВЕДОМЛЕНИЯ (ТОСТЫ) -->
-  <div id="game-toast" class="fixed top-4 left-1/2 -translate-x-1/2 bg-green-400 text-black border-4 border-black px-6 py-3 rounded-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 transform scale-100 transition-all duration-300" style="display:none;">
+  <div id="game-toast" class="fixed top-4 left-1/2 -translate-x-1/2 bg-green-400 text-black border-4 border-black px-6 py-3 rounded-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 transform scale-0 transition-all duration-300">
     <span id="game-toast-text">Сообщение</span>
   </div>
 
@@ -203,24 +214,24 @@
         <div id="target-player-display" class="inline-block bg-pink-500 border-4 border-black px-6 py-2 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1.5deg]">---</div>
       </div>
 
-      <!-- ВЫБОР ГОТОВОЙ КАТЕГОРИИ (Крупные плитки 2х2 в стиле Jackbox) -->
+      <!-- ВЫБОР ГОТОВОЙ КАТЕГОРИИ (Сбалансированные крупные плитки 2х2 с увеличенными до 64px иконками) -->
       <div class="bg-indigo-950/50 p-4 rounded-2xl border-4 border-black space-y-2 text-center transform rotate-[0.5deg]">
         <p class="text-[10px] font-black uppercase text-yellow-300 tracking-wider mb-2">🎲 Лень придумывать? Выбери колоду:</p>
         <div class="grid grid-cols-2 gap-3 pt-1">
-          <button onclick="getRandomCharacter('people')" class="bg-indigo-900 hover:bg-yellow-400 text-white hover:text-black p-3 rounded-2xl border-4 border-black flex flex-col items-center justify-center gap-1.5 btn-brutal">
-            <img src="deck-people.png" class="w-12 h-12 object-contain" onerror="this.style.display='none'">
+          <button onclick="getRandomCharacter('people')" class="bg-indigo-900 hover:bg-yellow-400 text-white hover:text-black p-3.5 rounded-2xl border-4 border-black flex flex-col items-center justify-center gap-2 btn-brutal">
+            <img src="deck-people.png" class="w-16 h-16 object-contain" onerror="this.style.display='none'">
             <span class="text-xs font-black uppercase">Люди</span>
           </button>
-          <button onclick="getRandomCharacter('movies')" class="bg-indigo-900 hover:bg-pink-500 text-white hover:text-black p-3 rounded-2xl border-4 border-black flex flex-col items-center justify-center gap-1.5 btn-brutal">
-            <img src="deck-movies.png" class="w-12 h-12 object-contain" onerror="this.style.display='none'">
+          <button onclick="getRandomCharacter('movies')" class="bg-indigo-900 hover:bg-pink-500 text-white hover:text-black p-3.5 rounded-2xl border-4 border-black flex flex-col items-center justify-center gap-2 btn-brutal">
+            <img src="deck-movies.png" class="w-16 h-16 object-contain" onerror="this.style.display='none'">
             <span class="text-xs font-black uppercase">Кино</span>
           </button>
-          <button onclick="getRandomCharacter('cartoons')" class="bg-indigo-900 hover:bg-cyan-400 text-white hover:text-black p-3 rounded-2xl border-4 border-black flex flex-col items-center justify-center gap-1.5 btn-brutal">
-            <img src="deck-cartoons.png" class="w-12 h-12 object-contain" onerror="this.style.display='none'">
+          <button onclick="getRandomCharacter('cartoons')" class="bg-indigo-900 hover:bg-cyan-400 text-white hover:text-black p-3.5 rounded-2xl border-4 border-black flex flex-col items-center justify-center gap-2 btn-brutal">
+            <img src="deck-cartoons.png" class="w-16 h-16 object-contain" onerror="this.style.display='none'">
             <span class="text-xs font-black uppercase">Мульт</span>
           </button>
-          <button onclick="getRandomCharacter('games')" class="bg-indigo-900 hover:bg-green-400 text-white hover:text-black p-3 rounded-2xl border-4 border-black flex flex-col items-center justify-center gap-1.5 btn-brutal">
-            <img src="deck-games.png" class="w-12 h-12 object-contain" onerror="this.style.display='none'">
+          <button onclick="getRandomCharacter('games')" class="bg-indigo-900 hover:bg-green-400 text-white hover:text-black p-3.5 rounded-2xl border-4 border-black flex flex-col items-center justify-center gap-2 btn-brutal">
+            <img src="deck-games.png" class="w-16 h-16 object-contain" onerror="this.style.display='none'">
             <span class="text-xs font-black uppercase">Игры</span>
           </button>
         </div>
@@ -249,10 +260,10 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 4: ИГРОВОЙ ПРОЦЕСС                       -->
   <!-- ============================================== -->
-  <main id="screen-game" class="w-full max-w-md hidden z-10 transition-all duration-300 transform opacity-0 scale-95 p-2 relative pointer-events-none">
+  <main id="screen-game" class="w-full max-w-4xl hidden z-10 transition-all duration-300 transform opacity-0 scale-95 p-2 flex flex-col md:flex-row gap-6 justify-center items-start pointer-events-none relative">
     
     <!-- ЛЕВАЯ КОЛОНКА (Основная карточка игры) - СТРОГО центрированная max-w-md -->
-    <div class="w-full bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative space-y-6 pointer-events-auto animate-pop-in">
+    <div class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative space-y-6 pointer-events-auto animate-pop-in">
       
       <!-- Имя того, кто угадывает -->
       <div class="text-center mb-4 border-b-4 border-black/20 pb-4">
@@ -316,8 +327,11 @@
         </div>
 
         <div class="text-center">
-          <p class="text-xs font-black uppercase text-indigo-200 mb-1">У тебя на лбу наклеено:</p>
-          <div class="inline-block bg-yellow-400 text-black border-4 border-black px-8 py-6 rounded-2xl font-title text-3xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[2deg] animate-pulse">❓ КТО Я? ❓</div>
+          <!-- Желтая плашка с вмонтированным стикером скотча (tape.png) БЕЗ дублирования верстки -->
+          <div class="inline-block bg-yellow-400 text-black border-4 border-black px-8 py-6 rounded-2xl font-title text-3xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[2deg] animate-pulse relative overflow-visible">
+            <img src="tape.png" class="absolute -top-5 -left-4 w-28 h-auto z-10 pointer-events-none drop-shadow-md transform rotate-[-8deg]" onerror="this.style.display='none'">
+            ❓ КТО Я? ❓
+          </div>
         </div>
         
         <div id="question-input-block" class="transform rotate-[-0.5deg]">
@@ -356,7 +370,7 @@
     <div class="relative md:absolute md:left-full md:top-0 md:ml-6 w-full md:w-72 mt-6 md:mt-0 space-y-6 pointer-events-auto flex flex-col animate-pop-in">
       
       <!-- ЛИЧНЫЙ БЛОКНОТ ИГРОКА (Дизайн блокнота на спирали) -->
-      <div id="my-personal-history-block" class="hidden pointer-events-auto">
+      <div id="my-personal-history-block" class="hidden pointer-events-auto animate-pop-in">
         <div class="bg-amber-50 text-black border-4 border-black p-4 rounded-3xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden min-h-[200px]">
           <!-- Имитация пружины сверху блокнота -->
           <div class="absolute top-0 inset-x-0 h-4 bg-indigo-950 flex justify-around items-center border-b-4 border-black z-20">
@@ -1157,7 +1171,7 @@
         // Генерация бэджа достижений непосредственно внутри карточки игрока
         const awardText = (achievements && achievements[player.name]) ? achievements[player.name] : null;
         const awardBadge = awardText ? `
-          <div class="mt-2.5 bg-purple-600 text-white border-2 border-black px-2.5 py-1 rounded-xl text-[10px] font-black tracking-wide inline-block shadow-[2px_2px_0px_rgba(0,0,0,1)] uppercase animate-pop-in">
+          <div class="mt-2.5 bg-purple-600 text-white border-2 border-black px-2.5 py-1 rounded-xl text-[10px] font-black tracking-wide inline-block shadow-[2px_2px_0px_rgba(0,0,0,1)] uppercase animate-pop-in" style="animation-delay: ${index * 150}ms;">
             🏆 ${awardText}
           </div>
         ` : '';
@@ -1165,11 +1179,16 @@
         const card = document.createElement('div');
         
         if (isWinner) {
+          // Инициализация упругого появления по очереди (staggered animation)
           card.className = `bg-yellow-400 text-black border-4 border-black p-4 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} animate-winner relative animate-pop-in`;
+          card.style.animationDelay = `${index * 150}ms`;
+          card.style.opacity = '0';
+          card.style.animationFillMode = 'forwards';
+          
           card.innerHTML = `
             <div class="absolute -top-5 -left-3 text-4xl rotate-[-15deg]">👑</div>
-            <!-- Скорректированный штамп в правом углу с брутальной тенью -->
-            <img src="stamp-guessed.png" class="absolute -right-3 -top-3 w-20 h-20 md:w-24 md:h-24 object-contain opacity-90 rotate-[12deg] z-10 pointer-events-none drop-shadow-[2px_2px_0px_rgba(0,0,0,0.15)]" onerror="this.style.display='none'">
+            <!-- Скорректированный штамп в правом углу с брутальной анимацией удара штампом -->
+            <img src="stamp-guessed.png" class="absolute -right-3 -top-3 w-20 h-20 md:w-24 md:h-24 object-contain opacity-90 rotate-[12deg] z-10 pointer-events-none drop-shadow-[2px_2px_0px_rgba(0,0,0,0.15)] animate-stamp" onerror="this.style.display='none'">
             <div class="flex justify-between items-center relative z-0">
               <div>
                 <p class="text-[10px] font-black uppercase text-amber-950 tracking-wider">Победитель партии!</p>
@@ -1183,16 +1202,17 @@
             </div>
           `;
         } else {
-          const cardBg = player.hasGuessed ? 'bg-cyan-400 text-black' : 'bg-indigo-950/60 text-indigo-200 opacity-80';
-          const labelText = player.hasGuessed ? 'Тоже угадал!' : 'Не успел отгадать';
-          const textStyle = player.hasGuessed ? 'text-black font-black' : 'text-white opacity-70';
+          // Инициализация упругого появления по очереди (staggered animation)
+          card.className = `${cardBg = player.hasGuessed ? 'bg-cyan-400 text-black' : 'bg-indigo-950/60 text-indigo-200 opacity-80'} border-4 border-black p-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} animate-pop-in`;
+          card.style.animationDelay = `${index * 150}ms`;
+          card.style.opacity = '0';
+          card.style.animationFillMode = 'forwards';
           
-          card.className = `${cardBg} border-4 border-black p-3 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} animate-pop-in`;
           card.innerHTML = `
             <div class="flex justify-between items-center">
               <div>
                 <p class="text-[9px] font-black uppercase tracking-wider opacity-70">${labelText}</p>
-                <h4 class="font-title text-base leading-tight ${textStyle}">${player.name} ${player.name === myName ? '(Ты)' : ''}</h4>
+                <h4 class="font-title text-base leading-tight ${textStyle = player.hasGuessed ? 'text-black font-black' : 'text-white opacity-70'}">${player.name} ${player.name === myName ? '(Ты)' : ''}</h4>
                 <p class="text-xs font-bold opacity-80">Тайная роль: <span class="underline font-black">${player.character}</span></p>
                 ${awardBadge}
               </div>
