@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Nunito:wght@700;900&display=swap');
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background-color: #1e1b4b;
+  background-image: radial-gradient(#312e81 1.5px, transparent 1.5px), radial-gradient(#312e81 1.5px, #1e1b4b 1.5px);
+  background-size: 60px 60px;
+  background-position: 0 0, 30px 30px;
+}
+
+.font-title {
+  font-family: 'Montserrat', sans-serif;
+}
+
+img {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+@keyframes gentle-wiggle {
+  0%, 100% { transform: rotate(-4deg) translateY(0); }
+  50% { transform: rotate(4deg) translateY(-8px); }
+}
+
+.animate-wiggle {
+  animation: gentle-wiggle 3s ease-in-out infinite;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.98); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+@keyframes celebrate {
+  0%, 100% { transform: scale(1) rotate(-1.5deg); }
+  50% { transform: scale(1.05) rotate(1.5deg); }
+}
+
+.animate-winner {
+  animation: celebrate 2s ease-in-out infinite;
+}
+
+.floating-emoji {
+  position: fixed;
+  bottom: 20px;
+  pointer-events: none;
+  z-index: 100;
+  animation: floatUp 2.5s ease-out forwards;
+}
+
+@keyframes floatUp {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  15% { opacity: 1; transform: translateY(-40px) scale(1.1); }
+  100% { transform: translateY(-380px) scale(0.7); opacity: 0; }
+}
+
+.btn-brutal {
+  transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-brutal:hover {
+  transform: translate(-3px, -3px) rotate(0.5deg);
+  box-shadow: 7px 7px 0px 0px rgba(0,0,0,1);
+}
+
+.btn-brutal:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0px 0px rgba(0,0,0,1);
+}
+
+@keyframes bounce-pop-in {
+  0% { transform: scale(0.7) translateY(50px) rotate(-8deg); opacity: 0; }
+  50% { transform: scale(1.06) translateY(-6px) rotate(2deg); opacity: 0.85; }
+  75% { transform: scale(0.97) translateY(2px) rotate(-1deg); }
+  100% { transform: scale(1) translateY(0) rotate(0deg); opacity: 1; }
+}
+
+.animate-bounce-pop {
+  animation: bounce-pop-in 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.92) translateY(12px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes winner-float {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg) scale(1); }
+  50% { transform: translateY(-7px) rotate(1.5deg) scale(1.02); }
+}
+
+.animate-winner-float {
+  animation: winner-float 3s ease-in-out infinite;
+}
