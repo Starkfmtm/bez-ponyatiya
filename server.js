@@ -158,7 +158,7 @@ function calculateAchievements(players) {
       philosopher = p.name;
     }
   });
-  if (philosopher && maxQuestions > 0) achievements[philosopher] = '🧐 Философ партии (задал больше всех вопросов)';
+  if (philosopher && maxQuestions > 0) achievements[philosopher] = '🧐 Философ партии';
 
   let maxReactions = -1;
   let partySoul = null;
@@ -168,7 +168,7 @@ function calculateAchievements(players) {
       partySoul = p.name;
     }
   });
-  if (partySoul && maxReactions > 0) achievements[partySoul] = '😂 Душа компании (заспамил всех реакциями)';
+  if (partySoul && maxReactions > 0) achievements[partySoul] = '😂 Душа компании';
 
   let minQuestions = 999;
   let sniper = null;
@@ -178,11 +178,11 @@ function calculateAchievements(players) {
       sniper = p.name;
     }
   });
-  if (sniper && minQuestions < 999) achievements[sniper] = `🎯 Снайпер догадок (угадал себя всего за ${minQuestions} вопр.)`;
+  if (sniper && minQuestions < 999) achievements[sniper] = `🎯 Снайпер догадок (${minQuestions} вопр.)`;
 
   players.forEach(p => {
     if (p.questionsCount === 0 && !achievements[p.name]) {
-      achievements[p.name] = '💤 Спящий красавец (промолчал всю игру)';
+      achievements[p.name] = '💤 Спящий красавец';
     }
   });
 
