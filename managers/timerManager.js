@@ -1,3 +1,4 @@
+// Импорт из той же директории
 const { getMaskedPlayersFor, calculateAchievements } = require('./roomManager');
 
 function clearRoomTimers(room) {

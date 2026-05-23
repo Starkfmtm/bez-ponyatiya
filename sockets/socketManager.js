@@ -1,9 +1,9 @@
-const { rooms, getMaskedPlayersFor, calculateAchievements } = require('../managers/roomManager');
-const { clearRoomTimers, startTurnTimer, passTurnToNext } = require('../managers/timerManager');
-const { isValidUsername, isValidRoomCode, isValidCharacter, isValidQuestion, isValidGuess } = require('../utils/validators');
-const DECKS = require('../utils/decks');
+// Все импорты переведены на плоскую структуру (из текущей папки)
+const { rooms, getMaskedPlayersFor, calculateAchievements } = require('./roomManager');
+const { clearRoomTimers, startTurnTimer, passTurnToNext } = require('./timerManager');
+const { isValidUsername, isValidRoomCode, isValidCharacter, isValidQuestion, isValidGuess } = require('./validators');
+const DECKS = require('./decks');
 
-// Объявляем массив цветов на уровне модуля
 const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849', '#38bdf8', '#fb7185'];
 
 function initSockets(io) {
@@ -46,7 +46,7 @@ function initSockets(io) {
             questionsCount: 0,
             reactionsCount: 0,
             history: [],
-            color: playerColors[0], // Корректное использование массива
+            color: playerColors[0],
             online: true
           }
         ],
@@ -183,7 +183,7 @@ function initSockets(io) {
         hasGuessed: false,
         questionsCount: 0,
         history: [],
-        color: playerColors[room.players.length % playerColors.length], // Корректное использование массива
+        color: playerColors[room.players.length % playerColors.length],
         online: true
       };
 
@@ -747,4 +747,27 @@ function initSockets(io) {
   });
 }
 
-module.exports = initSockets;
+module.exports = initSockets;--- START OF FILE server.js ---
+
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+const initSockets = require('./socketManager'); // Исправлено на локальный импорт
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
+
+const PORT = process.env.PORT || 3000;
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Инициализация WebSocket-обработчиков
+initSockets(io);
+
+server.listen(PORT, () => {
+  console.log(`Сервер запущен на порту ${PORT}`);
+});
