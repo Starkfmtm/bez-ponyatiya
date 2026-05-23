@@ -38,7 +38,7 @@ function isValidCharacter(char) {
 function isValidQuestion(q) {
   if (typeof q !== 'string') return false;
   const trimmed = q.trim();
-  return trimmed.length >= 1 && trimmed.length <= 120; // Лимит увеличен до 120 символов
+  return trimmed.length >= 1 && trimmed.length <= 120;
 }
 
 function isValidGuess(g) {
@@ -84,7 +84,7 @@ function clearRoomTimers(room) {
   }
 }
 
-// Запуск таймера на ход (вопрос/догадка)
+// Запуск таймера на ход на базе асинхронного замыкания
 function startTurnTimer(room, roomCode) {
   if (room.turnTimerInterval) {
     clearInterval(room.turnTimerInterval);
@@ -99,13 +99,18 @@ function startTurnTimer(room, roomCode) {
   room.turnTimeLeft = room.options.turnTimerDuration;
   const duration = room.options.turnTimerDuration;
 
+  // Уникальный токен сессии таймера для избежания наложения интервалов
+  const thisTimerId = Math.random();
+  room.activeTurnTimerId = thisTimerId;
+
   io.to(roomCode).emit('turn_timer_tick', { timeLeft: room.turnTimeLeft, duration });
 
-  room.turnTimerInterval = setInterval(() => {
+  const intervalId = setInterval(() => {
     const currentRoom = rooms.get(roomCode);
-    if (!currentRoom || currentRoom.status !== 'PLAYING') {
-      clearInterval(room.turnTimerInterval);
-      room.turnTimerInterval = null;
+    
+    // Если комната удалена, статус изменился или стартовал более новый таймер — самоликвидируемся
+    if (!currentRoom || currentRoom.status !== 'PLAYING' || currentRoom.activeTurnTimerId !== thisTimerId) {
+      clearInterval(intervalId);
       return;
     }
 
@@ -113,8 +118,10 @@ function startTurnTimer(room, roomCode) {
     io.to(roomCode).emit('turn_timer_tick', { timeLeft: currentRoom.turnTimeLeft, duration });
 
     if (currentRoom.turnTimeLeft <= 0) {
-      clearInterval(currentRoom.turnTimerInterval);
-      currentRoom.turnTimerInterval = null;
+      clearInterval(intervalId);
+      if (currentRoom.activeTurnTimerId === thisTimerId) {
+        currentRoom.turnTimerInterval = null;
+      }
 
       const activePlayer = currentRoom.players[currentRoom.activePlayerIndex];
       const name = activePlayer ? activePlayer.name : 'Игрок';
@@ -126,6 +133,8 @@ function startTurnTimer(room, roomCode) {
       passTurnToNext(currentRoom, roomCode);
     }
   }, 1000);
+
+  room.turnTimerInterval = intervalId;
 }
 
 // Безопасная передача хода следующему активному игроку
@@ -708,7 +717,6 @@ io.on('connection', (socket) => {
     const room = rooms.get(cleanCode);
     if (!room) return;
 
-    // Контроль хода: принимать вопросы только от текущего угадывающего игрока
     const activePlayer = room.players[room.activePlayerIndex];
     if (!activePlayer || activePlayer.socketId !== socket.id) {
       return socket.emit('error_message', 'Сейчас не твой ход задавать вопросы!');
@@ -1010,7 +1018,7 @@ const DECKS = {
     'Губка Боб', 'Шрек', 'Пикачу', 'Наруто', 'Миньон', 'Гомер Симпсон', 'Эльза (Холодное сердце)',
     'Микки Маус', 'Багз Банни', 'Скуби-Ду', 'Сейлор Мун', 'Кунг-фу Панда (По)', 'Беззубик', 'Чебурашка',
     'Волк (Ну, погоди!)', 'Маша (Маша и Медведь)', 'Фиона', 'Осел (Шрек)', 'Кот в сапогах',
-    'Симба (Король Лев)', 'Аладдин', 'Жасмин', 'Джинн', 'Русалочка (Ариэль)', 'Рапунцель',
+    'Симба (Король Lев)', 'Аладдин', 'Жасмин', 'Джинн', 'Русалочка (Ариэль)', 'Рапунцель',
     'Стив (Майнкрафт)', 'Лило', 'Стич', 'Гуфи'
   ],
   games: [
