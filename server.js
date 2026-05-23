@@ -430,7 +430,6 @@ io.on('connection', (socket) => {
           activePlayerHistory: nextActivePlayer.history,
           myPersonalHistory: p.history,
           players: getMaskedPlayersFor(room, p.socketId)
-          
         });
       });
     } else {
