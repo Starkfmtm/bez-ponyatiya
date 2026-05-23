@@ -326,7 +326,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 3. Запуск игры (Сбалансированный таймер)
+  // 3. Запуск игры (Сбалансированный стабильный таймер)
   socket.on('start_game', (data) => {
     const { roomCode } = data;
     const room = rooms.get(roomCode);
