@@ -161,7 +161,7 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 3: ЗАГАДЫВАНИЕ (ВВОД СЛОВ)               -->
   <!-- ============================================== -->
-  <main id="screen-input" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative overflow-hidden hidden z-10 transition-all duration-300 transform opacity-0 scale-95 pointer-events-auto">
+  <main id="screen-input" class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative overflow-hidden hidden z-10 transition-all duration-300 transform opacity-0 scale-95">
     <div class="absolute top-0 left-0 w-full h-3 bg-black/40"><div id="timer-bar" class="h-full bg-pink-500 transition-all duration-1000 ease-linear" style="width: 100%;"></div></div>
     
     <header class="text-center mt-2 mb-4">
@@ -216,7 +216,7 @@
   <!-- ============================================== -->
   <!-- ЭКРАН 4: ИГРОВОЙ ПРОЦЕСС                       -->
   <!-- ============================================== -->
-  <main id="screen-game" class="w-full max-w-4xl hidden z-10 transition-all duration-300 transform opacity-0 scale-95 p-2 flex flex-col md:flex-row gap-6 justify-center items-start pointer-events-none">
+  <main id="screen-game" class="w-full max-w-4xl hidden z-10 transition-all duration-300 transform opacity-0 scale-95 p-2 flex flex-row gap-6 justify-center items-start pointer-events-none">
     
     <!-- ЛЕВАЯ КОЛОНКА (Основная карточка игры) - СТРОГО max-w-md -->
     <div class="w-full max-w-md bg-indigo-900 border-4 border-black rounded-3xl p-6 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] text-white relative space-y-6 pointer-events-auto">
@@ -319,12 +319,12 @@
 
     </div> <!-- Конец основной карточки -->
 
-    <!-- ПРАВАЯ КОЛОНКА (Располагается СБОКУ на ПК, и снизу на мобильных устройствах) - СТРОГО max-w-xs -->
-    <div class="w-full max-w-md md:max-w-xs space-y-6 pointer-events-none">
+    <!-- ПРАВАЯ КОЛОНКА (Всегда находится СБОКУ на ПК и планшетах) - СТРОГО max-w-xs -->
+    <div class="w-full max-w-xs space-y-6 pointer-events-none shrink-0">
       
       <!-- ЛИЧНЫЙ БЛОКНОТ ИГРОКА (Дизайн блокнота на спирали) -->
       <div id="my-personal-history-block" class="hidden pointer-events-auto">
-        <div class="bg-amber-50 text-black border-4 border-black p-4 rounded-3xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden min-h-[160px]">
+        <div class="bg-amber-50 text-black border-4 border-black p-4 rounded-3xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden min-h-[200px]">
           <!-- Имитация пружины сверху блокнота -->
           <div class="absolute top-0 inset-x-0 h-4 bg-indigo-950 flex justify-around items-center border-b-4 border-black z-20">
             <div class="w-2.5 h-6 bg-gray-400 rounded-full border-2 border-black -mt-1 shadow-sm"></div>
@@ -338,7 +338,7 @@
           
           <div class="pl-6 pt-3 relative z-10 font-bold">
             <h4 class="font-title text-[11px] font-black uppercase text-indigo-900 tracking-wider mb-2">📝 Мой Блокнот (Кто я?):</h4>
-            <div id="my-personal-history-log" class="max-h-36 overflow-y-auto space-y-2 text-xs text-stone-800 scrollbar-thin"></div>
+            <div id="my-personal-history-log" class="max-h-48 overflow-y-auto space-y-2 text-xs text-stone-800 scrollbar-thin"></div>
           </div>
         </div>
       </div>
