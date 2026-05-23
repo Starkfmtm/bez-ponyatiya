@@ -12,7 +12,6 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 const rooms = new Map();
 
-// Уникальная палитра цветов для рисования игроков
 const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#ff7849', '#38bdf8', '#fb7185'];
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -66,7 +65,6 @@ function assignTargets(players) {
   }
 }
 
-// Вспомогательный метод для безопасного сброса всех таймеров комнаты
 function clearRoomTimers(room) {
   if (room.turnTimeout) {
     clearTimeout(room.turnTimeout);
@@ -110,7 +108,6 @@ function getMaskedPlayersFor(room, socketId) {
   });
 }
 
-// Унифицированная проверка и завершение голосования
 function checkAndResolveVote(room, roomCode) {
   if (room.status !== 'PLAYING') return;
   if (!room.currentQuestion) return;
@@ -138,7 +135,6 @@ function checkAndResolveVote(room, roomCode) {
     let isTie = false;
     let isDontKnow = false;
 
-    // Сравнение результатов с учетом третьей кнопки
     if (dontKnowVotes > yesVotes && dontKnowVotes > noVotes) {
       verdict = 'НЕ ЗНАЮ 🤷';
       isDontKnow = true;
@@ -174,7 +170,6 @@ function checkAndResolveVote(room, roomCode) {
     room.votes = { yes: 0, no: 0, dont_know: 0 };
     room.votedPlayers = [];
 
-    // Передаем ход дальше только при чистом ответе «НЕТ»
     if (!isYes && !isTie && !isDontKnow) {
       if (room.turnTimeout) clearTimeout(room.turnTimeout);
 
@@ -204,11 +199,9 @@ function checkAndResolveVote(room, roomCode) {
   }
 }
 
-// Подсчет голосов за перезапуск и его обработка
 function checkAndProcessRestartVote(room, roomCode) {
   if (!room.restartVotes) room.restartVotes = [];
 
-  // Исключаем вылетевших игроков из списка проголосовавших
   room.restartVotes = room.restartVotes.filter(name => 
     room.players.some(p => p.name === name && p.online)
   );
@@ -242,7 +235,8 @@ function checkAndProcessRestartVote(room, roomCode) {
       io.to(p.socketId).emit('room_state_update', {
         roomCode: room.roomCode,
         status: room.status,
-        players: getMaskedPlayersFor(room, p.socketId)
+        players: getMaskedPlayersFor(room, p.socketId),
+        options: room.options
       });
     });
   }
@@ -304,6 +298,10 @@ io.on('connection', (socket) => {
     const newRoom = {
       roomCode,
       status: 'LOBBY', 
+      options: {
+        inputTimerDuration: 60,
+        allowedDecks: ['people', 'movies', 'cartoons', 'games']
+      },
       players: [
         {
           socketId: socket.id,
@@ -336,11 +334,12 @@ io.on('connection', (socket) => {
 
     socket.emit('room_created', {
       roomCode,
-      players: getMaskedPlayersFor(newRoom, socket.id)
+      players: getMaskedPlayersFor(newRoom, socket.id),
+      options: newRoom.options
     });
   });
 
-  // 2. Вход в комнату (С восстановлением сессий и текущего вопроса)
+  // 2. Вход в комнату
   socket.on('join_room', (data) => {
     const { username, roomCode } = data;
     if (!isValidRoomCode(roomCode)) {
@@ -365,7 +364,6 @@ io.on('connection', (socket) => {
 
     const trimmedName = username.trim();
 
-    // Восстановление сессии по имени
     const existingPlayer = room.players.find(p => p.name.toLowerCase() === trimmedName.toLowerCase());
     if (existingPlayer) {
       existingPlayer.socketId = socket.id;
@@ -383,7 +381,6 @@ io.on('connection', (socket) => {
             myPersonalHistory: p.history,
             targetName: p.targetName,
             players: getMaskedPlayersFor(room, p.socketId),
-            // Синхронизация активного вопроса при возврате в игру
             currentQuestion: room.currentQuestion,
             votes: room.votes,
             votedPlayers: room.votedPlayers,
@@ -395,7 +392,8 @@ io.on('connection', (socket) => {
           io.to(p.socketId).emit('room_state_update', {
             roomCode: room.roomCode,
             status: room.status,
-            players: getMaskedPlayersFor(room, p.socketId)
+            players: getMaskedPlayersFor(room, p.socketId),
+            options: room.options
           });
         });
       }
@@ -437,7 +435,41 @@ io.on('connection', (socket) => {
       io.to(p.socketId).emit('room_state_update', {
         roomCode: room.roomCode,
         status: room.status,
-        players: getMaskedPlayersFor(room, p.socketId)
+        players: getMaskedPlayersFor(room, p.socketId),
+        options: room.options
+      });
+    });
+  });
+
+  // Настройки лобби (Обновление параметров)
+  socket.on('update_room_options', (data) => {
+    const { roomCode, options } = data;
+    if (!isValidRoomCode(roomCode)) return;
+
+    const room = rooms.get(roomCode.toUpperCase().trim());
+    if (!room) return;
+
+    const player = room.players.find(p => p.socketId === socket.id);
+    if (!player || !player.isHost) return;
+
+    if (options) {
+      if (options.inputTimerDuration && [30, 60, 90].includes(options.inputTimerDuration)) {
+        room.options.inputTimerDuration = options.inputTimerDuration;
+      }
+      if (options.allowedDecks && Array.isArray(options.allowedDecks)) {
+        const validDecks = options.allowedDecks.filter(d => ['people', 'movies', 'cartoons', 'games'].includes(d));
+        if (validDecks.length > 0) {
+          room.options.allowedDecks = validDecks;
+        }
+      }
+    }
+
+    room.players.forEach(p => {
+      io.to(p.socketId).emit('room_state_update', {
+        roomCode: room.roomCode,
+        status: room.status,
+        players: getMaskedPlayersFor(room, p.socketId),
+        options: room.options
       });
     });
   });
@@ -456,7 +488,7 @@ io.on('connection', (socket) => {
 
     room.status = 'INPUTTING';
     assignTargets(room.players);
-    room.inputTimeLeft = 60;
+    room.inputTimeLeft = room.options ? room.options.inputTimerDuration : 60;
 
     room.players.forEach(p => {
       io.to(p.socketId).emit('game_state_update', {
@@ -476,11 +508,14 @@ io.on('connection', (socket) => {
         clearInterval(room.inputTimerInterval);
         room.inputTimerInterval = null;
 
-        // Автозаполнение ролей не успевшим игрокам
+        // Автозаполнение ролей из разрешенных колод
+        const allowedDecks = (room.options && room.options.allowedDecks.length > 0) ? room.options.allowedDecks : ['people'];
         room.players.forEach(p => {
           const target = room.players.find(t => t.name === p.targetName);
           if (target && target.character === null) {
-            const randChar = DECKS.people[Math.floor(Math.random() * DECKS.people.length)];
+            const randomDeckName = allowedDecks[Math.floor(Math.random() * allowedDecks.length)];
+            const currentDeck = DECKS[randomDeckName] || DECKS.people;
+            const randChar = currentDeck[Math.floor(Math.random() * currentDeck.length)];
             target.character = randChar;
           }
         });
@@ -837,7 +872,8 @@ io.on('connection', (socket) => {
             io.to(p.socketId).emit('room_state_update', {
               roomCode: room.roomCode,
               status: room.status,
-              players: getMaskedPlayersFor(room, p.socketId)
+              players: getMaskedPlayersFor(room, p.socketId),
+              options: room.options
             });
           });
         }
