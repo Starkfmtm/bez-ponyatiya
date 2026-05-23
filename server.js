@@ -38,7 +38,7 @@ function isValidCharacter(char) {
 function isValidQuestion(q) {
   if (typeof q !== 'string') return false;
   const trimmed = q.trim();
-  return trimmed.length >= 1 && trimmed.length <= 50;
+  return trimmed.length >= 1 && trimmed.length <= 120; // Лимит увеличен до 120 символов
 }
 
 function isValidGuess(g) {
@@ -701,34 +701,40 @@ io.on('connection', (socket) => {
   socket.on('submit_question', (data) => {
     const { roomCode, question } = data;
     if (!isValidRoomCode(roomCode) || !isValidQuestion(question)) {
-      return socket.emit('error_message', 'Недопустимый вопрос (от 1 до 50 символов).');
+      return socket.emit('error_message', 'Недопустимый вопрос (до 120 символов).');
     }
 
-    const room = rooms.get(roomCode.toUpperCase().trim());
+    const cleanCode = roomCode.toUpperCase().trim();
+    const room = rooms.get(cleanCode);
     if (!room) return;
+
+    // Контроль хода: принимать вопросы только от текущего угадывающего игрока
+    const activePlayer = room.players[room.activePlayerIndex];
+    if (!activePlayer || activePlayer.socketId !== socket.id) {
+      return socket.emit('error_message', 'Сейчас не твой ход задавать вопросы!');
+    }
 
     if (room.turnTimerInterval) {
       clearInterval(room.turnTimerInterval);
       room.turnTimerInterval = null;
     }
     // Скрываем таймер на клиентах при переходе к голосованию
-    io.to(room.roomCode).emit('turn_timer_tick', { timeLeft: null, duration: null });
+    io.to(cleanCode).emit('turn_timer_tick', { timeLeft: null, duration: null });
 
     if (room.turnTimeout) {
       clearTimeout(room.turnTimeout);
       room.turnTimeout = null;
     }
 
-    const activePlayer = room.players[room.activePlayerIndex];
-    if (activePlayer) activePlayer.questionsCount++;
+    activePlayer.questionsCount++;
 
     room.currentQuestion = question.trim();
     room.votes = { yes: 0, no: 0, dont_know: 0 };
     room.votedPlayers = [];
 
-    io.to(room.roomCode).emit('question_broadcast', {
+    io.to(cleanCode).emit('question_broadcast', {
       question: room.currentQuestion,
-      activePlayerId: room.players[room.activePlayerIndex].socketId,
+      activePlayerId: activePlayer.socketId,
       players: getMaskedPlayersFor(room, '')
     });
   });
@@ -762,23 +768,26 @@ io.on('connection', (socket) => {
       return socket.emit('error_message', 'Недопустимая попытка отгадки.');
     }
 
-    const room = rooms.get(roomCode.toUpperCase().trim());
+    const cleanCode = roomCode.toUpperCase().trim();
+    const room = rooms.get(cleanCode);
     if (!room || room.status !== 'PLAYING') return;
+
+    const activePlayer = room.players[room.activePlayerIndex];
+    if (!activePlayer || socket.id !== activePlayer.socketId) {
+      return socket.emit('error_message', 'Сейчас не твой ход!');
+    }
 
     if (room.turnTimerInterval) {
       clearInterval(room.turnTimerInterval);
       room.turnTimerInterval = null;
     }
     // Скрываем таймер на клиентах во время верификации
-    io.to(room.roomCode).emit('turn_timer_tick', { timeLeft: null, duration: null });
+    io.to(cleanCode).emit('turn_timer_tick', { timeLeft: null, duration: null });
 
     if (room.turnTimeout) {
       clearTimeout(room.turnTimeout);
       room.turnTimeout = null;
     }
-
-    const activePlayer = room.players[room.activePlayerIndex];
-    if (!activePlayer || socket.id !== activePlayer.socketId) return;
 
     room.pendingGuess = guess.trim();
     room.votes = { yes: 0, no: 0, dont_know: 0 };

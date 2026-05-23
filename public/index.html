@@ -359,7 +359,7 @@
         
         <div id="question-input-block" class="transform rotate-[-0.5deg]">
           <label for="question-input" class="block text-xs font-black uppercase tracking-widest text-cyan-400 mb-2">Задай свой вопрос игрокам:</label>
-          <input type="text" id="question-input" maxlength="50" placeholder="Например: Я реальный человек?" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-pink-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
+          <input type="text" id="question-input" maxlength="120" placeholder="Например: Я реальный человек?" class="w-full bg-white text-black border-4 border-black text-lg p-3 rounded-2xl font-black text-center placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-pink-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all">
         </div>
 
         <div id="live-votes-results" class="bg-indigo-950/80 p-4 rounded-2xl border-4 border-black text-center hidden">
@@ -1091,6 +1091,9 @@
 
       const verdictText = document.getElementById('vote-verdict-text');
       if (verdictText) verdictText.classList.add('hidden');
+      
+      // Синхронизация ID угадывающего игрока
+      activePlayerId = data.activePlayerId;
 
       if (socket.id !== activePlayerId) {
         gameQuestionText.textContent = `«${data.question}»`;
@@ -1537,6 +1540,17 @@
 
     socket.on('error_message', (message) => {
       showToast(message, 3000, false);
+      
+      // Разблокировать управляющие кнопки при отклонении со стороны сервера
+      const btnAsk = document.getElementById('btn-ask');
+      const btnGuess = document.getElementById('btn-guess-attempt');
+      if (btnAsk && btnGuess) {
+        btnAsk.disabled = false;
+        btnGuess.disabled = false;
+        btnAsk.classList.remove('opacity-50', 'cursor-not-allowed');
+        btnGuess.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+
       if (message.includes('не найдена') || message.includes('уже началась')) {
         sessionStorage.removeItem('roomCode');
       }
