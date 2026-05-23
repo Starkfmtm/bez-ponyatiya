@@ -384,7 +384,7 @@
     <!-- ПРАВАЯ КОЛОНКА (ШИРИНА 96) -->
     <div class="relative md:absolute md:left-[calc(100%+1.5rem)] md:top-0 w-full md:w-96 mt-6 md:mt-0 space-y-6 pointer-events-auto flex flex-col animate-pop-in">
       
-      <!-- ЛИЧНЫЙ БЛОКНОТ ИГРОКА (ВЕРТИКАЛЬНЫЙ, С СИНИМИ ТЕТРАДНЫМИ ЛИНЕЙКАМИ) -->
+      <!-- ЛИЧНЫЙ БЛОКНОТ ИГРОКА (ВЕРТИКАЛЬНЫЙ, С РЕАЛЬНЫМИ HTML ЛИНИЯМИ) -->
       <div id="my-personal-history-block" class="hidden pointer-events-auto animate-pop-in">
         <div class="bg-amber-50 text-black border-4 border-black p-4 rounded-3xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden min-h-[220px]">
           <div class="absolute top-0 inset-x-0 h-4 bg-indigo-950 flex justify-around items-center border-b-4 border-black z-20">
@@ -950,6 +950,8 @@
 
     // ОБРАБОТКА СМЕНЫ СОСТОЯНИЙ ИГРЫ
     socket.on('game_state_update', (data) => {
+      if (!data) return;
+
       if (data.roomCode) {
         currentRoomCode = data.roomCode;
         sessionStorage.setItem('roomCode', currentRoomCode);
@@ -957,19 +959,22 @@
 
       // Автоматическая очистка холста при смене стадий
       if (data.status === 'INPUTTING' || data.status === 'PLAYING') {
-        bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        if (typeof bgCtx !== 'undefined' && bgCanvas) {
+          bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        }
       }
 
       if (data.status === 'INPUTTING') {
         targetPlayerDisplay.textContent = data.targetName || '---';
         showScreen(screenInput);
 
-        const me = data.players.find(p => p.socketId === socket.id);
+        const me = data.players ? data.players.find(p => p.socketId === socket.id) : null;
         
         const progressList = document.getElementById('input-progress-list');
         if (progressList) {
           progressList.innerHTML = '';
-          data.players.forEach(p => {
+          const playersArray = data.players || [];
+          playersArray.forEach(p => {
             const statusIcon = p.hasSubmitted ? '<span class="text-green-400">✅ Готов</span>' : '<span class="text-yellow-400 animate-pulse">✍️ Думает...</span>';
             const item = document.createElement('div');
             item.className = 'flex justify-between items-center border-b border-white/5 pb-1';
@@ -987,10 +992,11 @@
         }
       } 
       else if (data.status === 'PLAYING') {
-        activePlayerId = data.activePlayerId;
+        activePlayerId = data.activePlayerId || '';
         showScreen(screenGame);
 
-        const activePlayer = data.players.find(p => p.socketId === activePlayerId);
+        const playersArray = data.players || [];
+        const activePlayer = playersArray.find(p => p.socketId === activePlayerId);
 
         document.getElementById('guess-verification-block').classList.add('hidden');
         if (gameActiveRoundContent) gameActiveRoundContent.classList.remove('hidden');
@@ -1001,15 +1007,17 @@
         document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
         document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
 
-        renderNotepad(data.myPersonalHistory);
-        renderHistory(data.activePlayerHistory, gameHistoryLog);
+        renderNotepad(data.myPersonalHistory || []);
+        renderHistory(data.activePlayerHistory || [], gameHistoryLog);
 
-        const mePlayer = data.players.find(p => p.socketId === socket.id);
-        if (mePlayer && mePlayer.color) myBrushColor = mePlayer.color;
-        setupBrush();
+        const mePlayer = playersArray.find(p => p.socketId === socket.id);
+        if (mePlayer && mePlayer.color) {
+          myBrushColor = mePlayer.color;
+          setupBrush();
+        }
 
-        myPersonalHistoryBlock.classList.remove('hidden');
-        reactionPanel.classList.remove('hidden');
+        if (myPersonalHistoryBlock) myPersonalHistoryBlock.classList.remove('hidden');
+        if (reactionPanel) reactionPanel.classList.remove('hidden');
 
         if (socket.id === activePlayerId) {
           document.getElementById('game-active-subtitle').textContent = 'Твоя очередь!';
@@ -1034,6 +1042,8 @@
           
           if (activePlayer) {
             secretCharacterDisplay.textContent = activePlayer.character || '---';
+          } else {
+            secretCharacterDisplay.textContent = '---';
           }
           
           gameQuestionText.textContent = 'Ожидаем вопрос...';
@@ -1048,7 +1058,7 @@
           if (socket.id !== activePlayerId) {
             gameQuestionText.textContent = `«${data.currentQuestion}»`;
             
-            const eligibleVoters = data.players ? data.players.filter(p => p.socketId !== activePlayerId && p.online) : [];
+            const eligibleVoters = playersArray.filter(p => p.socketId !== activePlayerId && p.online);
             votersTotalDisplay.textContent = eligibleVoters.length || '1';
             votedCountDisplay.textContent = data.votedPlayers ? data.votedPlayers.length : '0';
 
@@ -1070,11 +1080,11 @@
         }
       }
       else if (data.status === 'RESULTS') {
-        reactionPanel.classList.add('hidden');
-        myPersonalHistoryBlock.classList.add('hidden');
+        if (reactionPanel) reactionPanel.classList.add('hidden');
+        if (myPersonalHistoryBlock) myPersonalHistoryBlock.classList.add('hidden');
         btnRestart.textContent = 'Еще разок!';
         showScreen(screenResults);
-        updateResultsUI(data.players, data.achievements);
+        updateResultsUI(data.players || [], data.achievements || {});
         triggerCelebrationConfetti(); // Салют на экране результатов!
       }
     });
