@@ -17,6 +17,37 @@ const playerColors = ['#facc15', '#f43f5e', '#22c55e', '#06b6d4', '#a855f7', '#f
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// === ФУНКЦИИ ВАЛИДАЦИИ ДАННЫХ ===
+function isValidUsername(name) {
+  if (typeof name !== 'string') return false;
+  const trimmed = name.trim();
+  return trimmed.length >= 1 && trimmed.length <= 15;
+}
+
+function isValidRoomCode(code) {
+  if (typeof code !== 'string') return false;
+  const trimmed = code.trim();
+  return /^[A-Z]{4}$/i.test(trimmed);
+}
+
+function isValidCharacter(char) {
+  if (typeof char !== 'string') return false;
+  const trimmed = char.trim();
+  return trimmed.length >= 1 && trimmed.length <= 60;
+}
+
+function isValidQuestion(q) {
+  if (typeof q !== 'string') return false;
+  const trimmed = q.trim();
+  return trimmed.length >= 1 && trimmed.length <= 50;
+}
+
+function isValidGuess(g) {
+  if (typeof g !== 'string') return false;
+  const trimmed = g.trim();
+  return trimmed.length >= 1 && trimmed.length <= 60;
+}
+
 function generateRoomCode() {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   let code = '';
@@ -32,6 +63,22 @@ function assignTargets(players) {
   for (let i = 0; i < len; i++) {
     const targetIndex = (i + 1) % len;
     players[i].targetName = players[targetIndex].name;
+  }
+}
+
+// Вспомогательный метод для безопасного сброса всех таймеров комнаты
+function clearRoomTimers(room) {
+  if (room.turnTimeout) {
+    clearTimeout(room.turnTimeout);
+    room.turnTimeout = null;
+  }
+  if (room.inputTimerInterval) {
+    clearInterval(room.inputTimerInterval);
+    room.inputTimerInterval = null;
+  }
+  if (room.deleteTimeout) {
+    clearTimeout(room.deleteTimeout);
+    room.deleteTimeout = null;
   }
 }
 
@@ -82,23 +129,32 @@ function checkAndResolveVote(room, roomCode) {
   });
 
   if (votedCount >= totalVoters && totalVoters > 0) {
-    const yesVotes = room.votes.yes;
-    const noVotes = room.votes.no;
+    const yesVotes = room.votes.yes || 0;
+    const noVotes = room.votes.no || 0;
+    const dontKnowVotes = room.votes.dont_know || 0;
 
     let verdict = '';
     let isYes = false;
     let isTie = false;
+    let isDontKnow = false;
 
-    if (yesVotes > noVotes) {
+    // Сравнение результатов с учетом третьей кнопки
+    if (dontKnowVotes > yesVotes && dontKnowVotes > noVotes) {
+      verdict = 'НЕ ЗНАЮ 🤷';
+      isDontKnow = true;
+    } else if (yesVotes > noVotes) {
       verdict = 'ДА 👍';
       isYes = true;
     } else if (noVotes > yesVotes) {
       verdict = 'НЕТ 👎';
       isYes = false;
-    } else {
+    } else if (yesVotes === noVotes && yesVotes > 0) {
       verdict = 'НЕПОНЯТНО 🤷';
       isYes = false;
       isTie = true;
+    } else {
+      verdict = 'НЕ ЗНАЮ 🤷';
+      isDontKnow = true;
     }
 
     activePlayer.history.push({
@@ -109,16 +165,17 @@ function checkAndResolveVote(room, roomCode) {
     io.to(roomCode).emit('voting_complete', {
       isYes,
       isTie,
+      isDontKnow,
       votes: room.votes,
       activePlayerHistory: activePlayer.history
     });
 
     room.currentQuestion = null;
-    room.votes = { yes: 0, no: 0 };
+    room.votes = { yes: 0, no: 0, dont_know: 0 };
     room.votedPlayers = [];
 
-    // Передаем ход дальше только при ответе «НЕТ»
-    if (!isYes && !isTie) {
+    // Передаем ход дальше только при чистом ответе «НЕТ»
+    if (!isYes && !isTie && !isDontKnow) {
       if (room.turnTimeout) clearTimeout(room.turnTimeout);
 
       room.turnTimeout = setTimeout(() => {
@@ -144,6 +201,50 @@ function checkAndResolveVote(room, roomCode) {
         });
       }, 3500);
     }
+  }
+}
+
+// Подсчет голосов за перезапуск и его обработка
+function checkAndProcessRestartVote(room, roomCode) {
+  if (!room.restartVotes) room.restartVotes = [];
+
+  // Исключаем вылетевших игроков из списка проголосовавших
+  room.restartVotes = room.restartVotes.filter(name => 
+    room.players.some(p => p.name === name && p.online)
+  );
+
+  const activeOnlinePlayers = room.players.filter(p => p.online);
+  const requiredVotes = activeOnlinePlayers.length;
+
+  io.to(roomCode).emit('restart_vote_update', {
+    votedCount: room.restartVotes.length,
+    requiredVotes: requiredVotes
+  });
+
+  if (requiredVotes > 0 && room.restartVotes.length >= requiredVotes) {
+    room.status = 'LOBBY';
+    clearRoomTimers(room);
+    room.currentQuestion = null;
+    room.votes = { yes: 0, no: 0, dont_know: 0 };
+    room.votedPlayers = [];
+    room.activePlayerIndex = 0;
+    room.restartVotes = [];
+
+    room.players.forEach(p => {
+      p.character = null;
+      p.hasGuessed = false;
+      p.questionsCount = 0;
+      p.reactionsCount = 0;
+      p.history = [];
+    });
+
+    room.players.forEach(p => {
+      io.to(p.socketId).emit('room_state_update', {
+        roomCode: room.roomCode,
+        status: room.status,
+        players: getMaskedPlayersFor(room, p.socketId)
+      });
+    });
   }
 }
 
@@ -195,7 +296,9 @@ io.on('connection', (socket) => {
   // 1. Создание комнаты
   socket.on('create_room', (data) => {
     const { username } = data;
-    if (!username) return socket.emit('error_message', 'Имя игрока обязательно');
+    if (!isValidUsername(username)) {
+      return socket.emit('error_message', 'Имя игрока должно быть от 1 до 15 символов.');
+    }
 
     const roomCode = generateRoomCode();
     const newRoom = {
@@ -219,8 +322,9 @@ io.on('connection', (socket) => {
       ],
       activePlayerIndex: 0,
       currentQuestion: null,
-      votes: { yes: 0, no: 0 },
+      votes: { yes: 0, no: 0, dont_know: 0 },
       votedPlayers: [],
+      restartVotes: [],
       turnTimeout: null,
       deleteTimeout: null,
       inputTimeLeft: 60,
@@ -236,10 +340,17 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 2. Вход в комнату (С восстановлением сессий)
+  // 2. Вход в комнату (С восстановлением сессий и текущего вопроса)
   socket.on('join_room', (data) => {
     const { username, roomCode } = data;
-    const cleanCode = roomCode ? roomCode.toUpperCase().trim() : '';
+    if (!isValidRoomCode(roomCode)) {
+      return socket.emit('error_message', 'Неверный формат кода комнаты.');
+    }
+    if (!isValidUsername(username)) {
+      return socket.emit('error_message', 'Имя должно быть от 1 до 15 символов.');
+    }
+
+    const cleanCode = roomCode.toUpperCase().trim();
     const room = rooms.get(cleanCode);
 
     if (!room) {
@@ -252,7 +363,7 @@ io.on('connection', (socket) => {
       console.log(`Удаление комнаты ${cleanCode} отменено.`);
     }
 
-    const trimmedName = username ? username.trim() : '';
+    const trimmedName = username.trim();
 
     // Восстановление сессии по имени
     const existingPlayer = room.players.find(p => p.name.toLowerCase() === trimmedName.toLowerCase());
@@ -271,7 +382,12 @@ io.on('connection', (socket) => {
             activePlayerHistory: activePlayer ? activePlayer.history : [],
             myPersonalHistory: p.history,
             targetName: p.targetName,
-            players: getMaskedPlayersFor(room, p.socketId)
+            players: getMaskedPlayersFor(room, p.socketId),
+            // Синхронизация активного вопроса при возврате в игру
+            currentQuestion: room.currentQuestion,
+            votes: room.votes,
+            votedPlayers: room.votedPlayers,
+            pendingGuess: room.pendingGuess
           });
         });
       } else {
@@ -326,10 +442,12 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 3. Запуск игры (Сбалансированный стабильный таймер)
+  // 3. Запуск игры
   socket.on('start_game', (data) => {
     const { roomCode } = data;
-    const room = rooms.get(roomCode);
+    if (!isValidRoomCode(roomCode)) return;
+
+    const room = rooms.get(roomCode.toUpperCase().trim());
     if (!room) return;
 
     if (room.players.length < 2) {
@@ -352,7 +470,7 @@ io.on('connection', (socket) => {
     if (room.inputTimerInterval) clearInterval(room.inputTimerInterval);
     room.inputTimerInterval = setInterval(() => {
       room.inputTimeLeft--;
-      io.to(roomCode).emit('timer_tick', { timeLeft: room.inputTimeLeft });
+      io.to(room.roomCode).emit('timer_tick', { timeLeft: room.inputTimeLeft });
 
       if (room.inputTimeLeft <= 0) {
         clearInterval(room.inputTimerInterval);
@@ -401,13 +519,16 @@ io.on('connection', (socket) => {
 
   socket.on('submit_character', (data) => {
     const { roomCode, character } = data;
-    const room = rooms.get(roomCode);
+    if (!isValidRoomCode(roomCode) || !isValidCharacter(character)) {
+      return socket.emit('error_message', 'Недопустимый персонаж (от 1 до 60 символов).');
+    }
+
+    const room = rooms.get(roomCode.toUpperCase().trim());
     if (!room) return;
 
     const currentPlayer = room.players.find(p => p.socketId === socket.id);
     if (!currentPlayer) return;
 
-    // Поиск по имени, полностью защищенный от смены socketId при переподключениях
     const targetPlayer = room.players.find(p => p.name === currentPlayer.targetName);
     if (targetPlayer) targetPlayer.character = character.trim();
 
@@ -446,7 +567,11 @@ io.on('connection', (socket) => {
 
   socket.on('submit_question', (data) => {
     const { roomCode, question } = data;
-    const room = rooms.get(roomCode);
+    if (!isValidRoomCode(roomCode) || !isValidQuestion(question)) {
+      return socket.emit('error_message', 'Недопустимый вопрос (от 1 до 50 символов).');
+    }
+
+    const room = rooms.get(roomCode.toUpperCase().trim());
     if (!room) return;
 
     if (room.turnTimeout) {
@@ -457,12 +582,12 @@ io.on('connection', (socket) => {
     const activePlayer = room.players[room.activePlayerIndex];
     if (activePlayer) activePlayer.questionsCount++;
 
-    room.currentQuestion = question;
-    room.votes = { yes: 0, no: 0 };
+    room.currentQuestion = question.trim();
+    room.votes = { yes: 0, no: 0, dont_know: 0 };
     room.votedPlayers = [];
 
-    io.to(roomCode).emit('question_broadcast', {
-      question,
+    io.to(room.roomCode).emit('question_broadcast', {
+      question: room.currentQuestion,
       activePlayerId: room.players[room.activePlayerIndex].socketId,
       players: getMaskedPlayersFor(room, '')
     });
@@ -470,7 +595,10 @@ io.on('connection', (socket) => {
 
   socket.on('submit_vote', (data) => {
     const { roomCode, voteType } = data;
-    const room = rooms.get(roomCode);
+    if (!isValidRoomCode(roomCode)) return;
+    if (!['yes', 'no', 'dont_know'].includes(voteType)) return;
+
+    const room = rooms.get(roomCode.toUpperCase().trim());
     if (!room || room.status !== 'PLAYING') return;
 
     const activePlayer = room.players[room.activePlayerIndex];
@@ -479,16 +607,21 @@ io.on('connection', (socket) => {
 
     if (!room.votes.yes) room.votes.yes = 0;
     if (!room.votes.no) room.votes.no = 0;
+    if (!room.votes.dont_know) room.votes.dont_know = 0;
 
     room.votes[voteType]++;
     room.votedPlayers.push(socket.id);
 
-    checkAndResolveVote(room, roomCode);
+    checkAndResolveVote(room, room.roomCode);
   });
 
   socket.on('guess_attempt', (data) => {
     const { roomCode, guess } = data;
-    const room = rooms.get(roomCode);
+    if (!isValidRoomCode(roomCode) || !isValidGuess(guess)) {
+      return socket.emit('error_message', 'Недопустимая попытка отгадки.');
+    }
+
+    const room = rooms.get(roomCode.toUpperCase().trim());
     if (!room || room.status !== 'PLAYING') return;
 
     if (room.turnTimeout) {
@@ -500,7 +633,7 @@ io.on('connection', (socket) => {
     if (socket.id !== activePlayer.socketId) return;
 
     room.pendingGuess = guess.trim();
-    room.votes = { yes: 0, no: 0 };
+    room.votes = { yes: 0, no: 0, dont_know: 0 };
     room.votedPlayers = [];
 
     room.players.forEach(p => {
@@ -518,7 +651,9 @@ io.on('connection', (socket) => {
 
   socket.on('submit_guess_verdict', (data) => {
     const { roomCode, isCorrect } = data;
-    const room = rooms.get(roomCode);
+    if (!isValidRoomCode(roomCode)) return;
+
+    const room = rooms.get(roomCode.toUpperCase().trim());
     if (!room || room.status !== 'PLAYING') return;
 
     const activePlayer = room.players[room.activePlayerIndex];
@@ -539,7 +674,7 @@ io.on('connection', (socket) => {
       if (approved) {
         activePlayer.hasGuessed = true;
         
-        io.to(roomCode).emit('guess_result', {
+        io.to(room.roomCode).emit('guess_result', {
           success: true,
           playerName: activePlayer.name,
           character: activePlayer.character
@@ -548,6 +683,7 @@ io.on('connection', (socket) => {
         const remainingPlayers = room.players.filter(p => !p.hasGuessed);
         if (remainingPlayers.length <= 1) {
           room.status = 'RESULTS';
+          clearRoomTimers(room);
           const achievements = calculateAchievements(room.players);
 
           room.players.forEach(p => {
@@ -560,14 +696,14 @@ io.on('connection', (socket) => {
           return;
         }
       } else {
-        io.to(roomCode).emit('guess_result', {
+        io.to(room.roomCode).emit('guess_result', {
           success: false,
           playerName: activePlayer.name
         });
       }
 
       room.currentQuestion = null;
-      room.votes = { yes: 0, no: 0 };
+      room.votes = { yes: 0, no: 0, dont_know: 0 };
       room.votedPlayers = [];
 
       const startIndex = room.activePlayerIndex;
@@ -592,7 +728,9 @@ io.on('connection', (socket) => {
 
   socket.on('send_reaction', (data) => {
     const { emoji, roomCode } = data;
-    const room = rooms.get(roomCode);
+    if (!isValidRoomCode(roomCode)) return;
+
+    const room = rooms.get(roomCode.toUpperCase().trim());
     if (!room) return;
 
     const sender = room.players.find(p => p.socketId === socket.id);
@@ -601,7 +739,7 @@ io.on('connection', (socket) => {
     }
     const senderName = sender ? sender.name : 'Кто-то';
 
-    io.to(roomCode).emit('broadcast_reaction', {
+    io.to(room.roomCode).emit('broadcast_reaction', {
       emoji,
       senderName
     });
@@ -609,49 +747,36 @@ io.on('connection', (socket) => {
 
   socket.on('draw_line', (data) => {
     const { roomCode, x1, y1, x2, y2, color } = data;
-    socket.to(roomCode).emit('broadcast_line', {
+    if (!isValidRoomCode(roomCode)) return;
+    socket.to(roomCode.toUpperCase().trim()).emit('broadcast_line', {
       x1, y1, x2, y2, color
     });
   });
 
   socket.on('clear_drawings', (data) => {
     const { roomCode } = data;
-    io.to(roomCode).emit('broadcast_clear_drawings');
+    if (!isValidRoomCode(roomCode)) return;
+    io.to(roomCode.toUpperCase().trim()).emit('broadcast_clear_drawings');
   });
 
-  socket.on('restart_game', (data) => {
+  // Запрос перезапуска игры в виде голосования
+  socket.on('request_restart', (data) => {
     const { roomCode } = data;
-    const room = rooms.get(roomCode);
+    if (!isValidRoomCode(roomCode)) return;
+
+    const cleanCode = roomCode.toUpperCase().trim();
+    const room = rooms.get(cleanCode);
     if (!room) return;
 
-    room.status = 'LOBBY';
-    if (room.turnTimeout) clearTimeout(room.turnTimeout);
-    room.turnTimeout = null;
-    room.currentQuestion = null;
-    room.votes = { yes: 0, no: 0 };
-    room.votedPlayers = [];
-    room.activePlayerIndex = 0;
+    const player = room.players.find(p => p.socketId === socket.id);
+    if (!player) return;
 
-    if (room.inputTimerInterval) {
-      clearInterval(room.inputTimerInterval);
-      room.inputTimerInterval = null;
+    if (!room.restartVotes) room.restartVotes = [];
+    if (!room.restartVotes.includes(player.name)) {
+      room.restartVotes.push(player.name);
     }
 
-    room.players.forEach(p => {
-      p.character = null;
-      p.hasGuessed = false;
-      p.questionsCount = 0;
-      p.reactionsCount = 0;
-      p.history = [];
-    });
-
-    room.players.forEach(p => {
-      io.to(p.socketId).emit('room_state_update', {
-        roomCode: room.roomCode,
-        status: room.status,
-        players: getMaskedPlayersFor(room, p.socketId)
-      });
-    });
+    checkAndProcessRestartVote(room, cleanCode);
   });
 
   socket.on('disconnect', () => {
@@ -680,13 +805,17 @@ io.on('connection', (socket) => {
 
           const activeSockets = io.sockets.adapter.rooms.get(roomCode);
           if (!activeSockets || activeSockets.size === 0) {
-            if (room.deleteTimeout) clearTimeout(room.deleteTimeout);
+            clearRoomTimers(room);
             room.deleteTimeout = setTimeout(() => {
               rooms.delete(roomCode);
               console.log(`Комната ${roomCode} окончательно удалена из памяти.`);
             }, 30000);
           } else {
-            checkAndResolveVote(room, roomCode);
+            if (room.status === 'RESULTS') {
+              checkAndProcessRestartVote(room, roomCode);
+            } else {
+              checkAndResolveVote(room, roomCode);
+            }
           }
           return; 
         }
@@ -695,7 +824,7 @@ io.on('connection', (socket) => {
 
         const activeSockets = io.sockets.adapter.rooms.get(roomCode);
         if (!activeSockets || activeSockets.size === 0) {
-          if (room.deleteTimeout) clearTimeout(room.deleteTimeout);
+          clearRoomTimers(room);
           room.deleteTimeout = setTimeout(() => {
             rooms.delete(roomCode);
             console.log(`Комната ${roomCode} окончательно удалена.`);
