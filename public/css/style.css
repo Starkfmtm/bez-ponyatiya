@@ -1,11 +1,59 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Nunito:wght@700;900&display=swap');
 
+/* ============================================================== */
+/* ГЛОБАЛЬНЫЙ ЗАПРЕТ ВЫДЕЛЕНИЯ И СБРОС КУРСОРОВ                  */
+/* ============================================================== */
+* {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+html, body {
+  cursor: default;
+}
+
+/* ИСКЛЮЧЕНИЕ: Поля ввода */
+input, textarea, [contenteditable="true"] {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  cursor: text !important;
+}
+
+/* ИСКЛЮЧЕНИЕ: Кликабельные элементы и абсолютно весь контент внутри них */
+button, 
+button *, 
+select, 
+select *, 
+option, 
+a, 
+a *, 
+[role="button"], 
+[role="button"] *, 
+.cursor-pointer, 
+.cursor-pointer *, 
+#lobby-code-display, 
+#lobby-code-display *,
+#btn-random-avatar,
+#btn-random-avatar * {
+  cursor: pointer !important;
+}
+
+/* ============================================================== */
+/* ДЕКОРАТИВНЫЕ СТИЛИ И АНИМАЦИИ                                  */
+/* ============================================================== */
 body {
   font-family: 'Nunito', sans-serif;
-  background-color: #1e1b4b;
-  background-image: radial-gradient(#312e81 1.5px, transparent 1.5px), radial-gradient(#312e81 1.5px, #1e1b4b 1.5px);
-  background-size: 60px 60px;
-  background-position: 0 0, 30px 30px;
+  background-color: #11122a;
+  /* Первый слой — точечный паттерн, второй слой — глубокое атмосферное сияние */
+  background-image: 
+    radial-gradient(#1c1e4c 2px, transparent 2px), 
+    radial-gradient(#1c1e4c 2px, transparent 2px), 
+    radial-gradient(circle at 50% 35%, #261b54 0%, #111227 65%, #080916 100%) !important;
+  background-size: 40px 40px, 40px 40px, 100% 100%;
+  background-position: 0 0, 20px 20px, 0 0;
+  background-attachment: fixed;
 }
 
 .font-title {
@@ -15,15 +63,6 @@ body {
 img {
   user-select: none;
   -webkit-user-drag: none;
-}
-
-@keyframes gentle-wiggle {
-  0%, 100% { transform: rotate(-4deg) translateY(0); }
-  50% { transform: rotate(4deg) translateY(-8px); }
-}
-
-.animate-wiggle {
-  animation: gentle-wiggle 3s ease-in-out infinite;
 }
 
 @keyframes pulse-slow {
@@ -63,13 +102,13 @@ img {
 }
 
 .btn-brutal:hover {
-  transform: translate(-3px, -3px) rotate(0.5deg);
-  box-shadow: 7px 7px 0px 0px rgba(0,0,0,1);
+  transform: translate(-2px, -2px);
+  box-shadow: 0 6px 0 0 #0c0d21;
 }
 
 .btn-brutal:active {
-  transform: translate(3px, 3px);
-  box-shadow: 1px 1px 0px 0px rgba(0,0,0,1);
+  transform: translate(0px, 4px);
+  box-shadow: 0 0px 0 0 #0c0d21;
 }
 
 @keyframes bounce-pop-in {
@@ -99,4 +138,97 @@ img {
 
 .animate-winner-float {
   animation: winner-float 3s ease-in-out infinite;
+}
+
+/* СТИЛИЗАЦИЯ БУМАГИ В ЛИНЕЙКУ */
+.ruled-page {
+  background: #fffef2;
+  background-image: linear-gradient(#b4d3e6 1.1px, transparent 1.1px);
+  background-size: 100% 28px;
+  background-attachment: local;
+}
+
+/* Плавное медленное вращение пунктирного круга позади маскота */
+@keyframes spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 25s linear infinite;
+}
+
+/* Жесткие обводки для полей ввода и карточек */
+input[type="text"] {
+  border-color: #0c0d21 !important;
+  background-color: #ffffff !important;
+}
+
+/* Настройка анимации покачивания маскота */
+@keyframes gentle-wiggle {
+  0%, 100% { transform: rotate(-2deg) translateY(0); }
+  50% { transform: rotate(2deg) translateY(-4px); }
+}
+
+.animate-wiggle {
+  animation: gentle-wiggle 3s ease-in-out infinite;
+}
+
+/* Мягкий вертикальный градиент с фиолетовым свечением только вверху */
+#screen-welcome {
+  background: linear-gradient(to bottom, 
+    #2c1a4d 0%,    /* Очень мягкий, приглушенный фиолетовый на самом верху */
+    #13153f 55%,   /* Плавный переход в темно-синий */
+    #0a0b22 100%   /* Глубокий темный цвет внизу для контраста с кнопками */
+  ) !important;
+}
+
+/* ============================================================== */
+/* МУЛЬТЯШНЫЕ КНОПКИ И ПОЛЯ С АНИМАЦИЯМИ ДЛЯ НИЖНЕГО БЛОКА        */
+/* ============================================================== */
+
+/* Базовый интерактивный класс для кнопки ВОЙТИ */
+.cartoon-interactive {
+  transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.cartoon-interactive:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 7px 0 0 #0c0d21 !important;
+  filter: brightness(1.05);
+}
+
+.cartoon-interactive:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 1px 0 0 #0c0d21 !important;
+}
+
+/* Настройки для интерактивного поля ввода */
+.cartoon-input {
+  transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+.cartoon-input:hover, .cartoon-input:focus {
+  transform: translateY(-1px) rotate(0deg) !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 5px 0 0 #0c0d21, 0 0 15px rgba(56, 189, 248, 0.3) !important;
+}
+
+/* ФЛАТ-МУЛЬТЯШНАЯ КНОПКА «СОЗДАТЬ» (В ОБЩЕМ СТИЛЕ ИГРЫ) */
+.btn-cartoon-create {
+  background-color: #fcc82b !important;
+  border: 4px solid #0c0d21 !important;
+  border-radius: 16px !important; /* Округлость полностью соответствует кнопке ВОЙТИ */
+  box-shadow: 0 6px 0 0 #0c0d21 !important;
+  transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.btn-cartoon-create:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 9px 0 0 #0c0d21 !important;
+  background-color: #ffd44f !important; /* Мягкое подсвечивание без глянца */
+}
+
+.btn-cartoon-create:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 3px 0 0 #0c0d21 !important;
 }

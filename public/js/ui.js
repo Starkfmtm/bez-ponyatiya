@@ -61,39 +61,42 @@ export function renderNotepad(historyArray) {
   const yesItems = historyArray ? historyArray.filter(item => item.verdict && item.verdict.includes('ДА')) : [];
   const noItems = historyArray ? historyArray.filter(item => !item.verdict || !item.verdict.includes('ДА')) : [];
 
+  // Рендерим строки ДА с ЗЕЛЕНЫМИ линиями
   yesItems.forEach(item => {
     const itemEl = document.createElement('div');
-    itemEl.className = "text-[11px] text-stone-900 font-semibold border-b border-stone-300/70 truncate px-1";
+    itemEl.className = "text-[11px] text-stone-900 font-semibold border-b border-green-300/80 truncate px-1";
     itemEl.style.lineHeight = "28px";
     itemEl.style.height = "28px";
     itemEl.textContent = `• ${item.question}`;
     yesLog.appendChild(itemEl);
   });
 
+  // Рендерим строки НЕТ с КРАСНЫМИ линиями
   noItems.forEach(item => {
     const itemEl = document.createElement('div');
-    itemEl.className = "text-[11px] text-stone-900 font-semibold border-b border-stone-300/70 truncate px-1";
+    itemEl.className = "text-[11px] text-stone-900 font-semibold border-b border-red-300/80 truncate px-1";
     itemEl.style.lineHeight = "28px";
     itemEl.style.height = "28px";
     itemEl.textContent = `• ${item.question}`;
     noLog.appendChild(itemEl);
   });
 
-  fillWithLines(yesLog, Math.max(5, yesItems.length));
-  fillWithLines(noLog, Math.max(5, noItems.length));
+  // Дорисовать недостающие пустые линии соответствующего цвета
+  fillWithLines(yesLog, Math.max(5, yesItems.length), "border-green-300/80");
+  fillWithLines(noLog, Math.max(5, noItems.length), "border-red-300/80");
 
   yesLog.scrollTop = yesLog.scrollHeight;
   noLog.scrollTop = noLog.scrollHeight;
 }
 
-function fillWithLines(element, targetCount) {
+function fillWithLines(element, targetCount, borderClass) {
   if (!element) return;
   const currentCount = element.children.length;
   if (currentCount < targetCount) {
     for (let i = 0; i < (targetCount - currentCount); i++) {
       const emptyLine = document.createElement('div');
       emptyLine.style.height = "28px";
-      emptyLine.className = "border-b border-stone-300/70";
+      emptyLine.className = `border-b ${borderClass}`;
       element.appendChild(emptyLine);
     }
   }
@@ -142,15 +145,56 @@ export function updateLobbyUI(players, isHost, myName) {
     const card = document.createElement('div');
     
     const isOffline = player.online === false;
-    const offlineBadge = isOffline ? '<span class="text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded ml-1 uppercase">Вылетел</span>' : '';
+    const offlineBadge = isOffline ? '<span class="text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded ml-1 uppercase">Переподключение...</span>' : '';
 
-    card.className = `bg-yellow-100 text-black border-4 border-black p-3 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} flex flex-col justify-between min-h-[80px]`;
+    // Базовый контейнер билета с разрешением перекрытия вырезов (overflow-visible)
+    card.className = `text-black border-4 border-black p-3 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} flex flex-col justify-between min-h-[135px] w-full relative overflow-visible`;
+    card.style.backgroundColor = player.color || '#fff1f2';
+
+    const badgeHTML = player.isHost 
+      ? '<span class="text-[9px] font-black uppercase bg-pink-500 text-white px-2 py-0.5 rounded border-2 border-black rotate-[2deg] shadow-[1px_1px_0px_rgba(0,0,0,1)] inline-block">ХОСТ</span>' 
+      : '<span class="text-[9px] font-black uppercase bg-white text-black px-2 py-0.5 rounded border-2 border-black rotate-[-2deg] shadow-[1px_1px_0px_rgba(0,0,0,1)] inline-block">ИГРОК</span>';
+
+    // Отдельный стикер для текущего игрока
+    const isMeHTML = player.name === myName 
+      ? '<span class="text-[9px] font-black uppercase bg-yellow-400 text-black px-1.5 py-0.5 rounded border-2 border-black rotate-[-3deg] shadow-[1px_1px_0px_rgba(0,0,0,1)] inline-block mr-1">ТЫ</span>' 
+      : '';
+
     card.innerHTML = `
-      <div class="font-black text-lg break-words leading-tight flex flex-wrap items-center gap-1">
-        <span>${player.name} ${player.name === myName ? '(Ты)' : ''}</span>
-        ${offlineBadge}
+      <!-- Левый боковой вырез (Идеальный стык под цвет нового фона #1a1c47) -->
+      <div class="absolute -left-[11px] top-[66%] -translate-y-1/2 w-5 h-5 rounded-full bg-[#1a1c47] border-r-4 border-black z-20"></div>
+      <!-- Правый боковой вырез (Идеальный стык под цвет нового фона #1a1c47) -->
+      <div class="absolute -right-[11px] top-[66%] -translate-y-1/2 w-5 h-5 rounded-full bg-[#1a1c47] border-l-4 border-black z-20"></div>
+
+      <!-- КРУПНАЯ АВАТАРКА-ВОДЯНОЙ ЗНАК (Непрозрачность 60%, отцентрована строго выше линии отрыва) -->
+      <div class="absolute top-0 inset-x-0 h-[66%] flex items-center justify-center pointer-events-none z-0 overflow-hidden select-none">
+        <span class="text-[72px] sm:text-[80px] select-none filter opacity-[0.6] select-none" style="mix-blend-mode: multiply;">${player.avatar || '🐱'}</span>
       </div>
-      ${player.isHost ? '<span class="self-end text-[10px] font-black uppercase bg-pink-500 text-white px-2 py-0.5 rounded border-2 border-black rotate-[3deg]">ХОСТ</span>' : '<span class="self-end text-[10px] font-black uppercase text-gray-500">Участник</span>'}
+
+      <!-- 1. ШАПКА БИЛЕТА (z-10 поверх водяного знака) -->
+      <div class="flex items-center justify-between w-full select-none z-10 relative">
+        <div class="flex flex-col items-start leading-none opacity-70">
+          <span class="text-[7px] font-mono tracking-wider font-black">PASS #00${index + 1}</span>
+          <span class="text-[9px] font-mono tracking-[-0.5px] mt-0.5 select-none font-black">||||| || |||</span>
+        </div>
+        <div class="flex items-center">
+          ${isMeHTML}
+          ${badgeHTML}
+        </div>
+      </div>
+
+      <!-- 2. Пустая область для сохранения вертикального баланса -->
+      <div class="h-10 z-10"></div>
+
+      <!-- 3. ЛИНИЯ ОТРЫВА (z-10 поверх водяного знака) -->
+      <div class="w-full border-t-4 border-dashed border-black/20 my-1 z-10 relative"></div>
+
+      <!-- 4. ОТРЫВНОЙ КУПОН: Чистый никнейм (z-10 поверх водяного знака) -->
+      <div class="w-full text-center z-10 relative">
+        <span class="font-black text-xs sm:text-sm tracking-tight leading-tight block truncate text-black" title="${player.name}">
+          ${player.name}${offlineBadge}
+        </span>
+      </div>
     `;
     playersList.appendChild(card);
   });
@@ -235,4 +279,52 @@ export function updateResultsUI(players, achievements, myName) {
     wrapper.appendChild(card);
     resultsList.appendChild(wrapper);
   });
+}
+
+export function renderTargetPlayerTicket(player, container, index) {
+  if (!container || !player) return;
+  
+  // Принудительно задаем контейнеру стили и пропорции билетика
+  container.className = "text-black border-4 border-black p-3 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[135px] w-full max-w-[260px] mx-auto relative overflow-visible transform rotate-[1deg] text-left";
+  container.style.backgroundColor = player.color || '#fff1f2';
+  
+  const badgeHTML = player.isHost 
+    ? '<span class="text-[9px] font-black uppercase bg-pink-500 text-white px-2 py-0.5 rounded border-2 border-black rotate-[2deg] shadow-[1px_1px_0px_rgba(0,0,0,1)] inline-block">ХОСТ</span>' 
+    : '<span class="text-[9px] font-black uppercase bg-white text-black px-2 py-0.5 rounded border-2 border-black rotate-[-2deg] shadow-[1px_1px_0px_rgba(0,0,0,1)] inline-block">ИГРОК</span>';
+
+  container.innerHTML = `
+    <!-- Левый боковой вырез (Идеальный стык под цвет нового фона #1a1c47) -->
+    <div class="absolute -left-[11px] top-[66%] -translate-y-1/2 w-5 h-5 rounded-full bg-[#1a1c47] border-r-4 border-black z-20"></div>
+    <!-- Правый боковой вырез (Идеальный стык под цвет нового фона #1a1c47) -->
+    <div class="absolute -right-[11px] top-[66%] -translate-y-1/2 w-5 h-5 rounded-full bg-[#1a1c47] border-l-4 border-black z-20"></div>
+
+    <!-- КРУПНАЯ АВАТАРКА-ВОДЯНОЙ ЗНАК (Непрозрачность 60%, отцентрована строго выше линии отрыва) -->
+    <div class="absolute top-0 inset-x-0 h-[66%] flex items-center justify-center pointer-events-none z-0 overflow-hidden select-none">
+      <span class="text-[72px] sm:text-[80px] select-none filter opacity-[0.6] select-none" style="mix-blend-mode: multiply;">${player.avatar || '🐱'}</span>
+    </div>
+
+    <!-- 1. ШАПКА БИЛЕТА (z-10 поверх водяного знака) -->
+    <div class="flex items-center justify-between w-full select-none z-10 relative">
+      <div class="flex flex-col items-start leading-none opacity-70">
+        <span class="text-[7px] font-mono tracking-wider font-black">PASS #00${index + 1}</span>
+        <span class="text-[9px] font-mono tracking-[-0.5px] mt-0.5 select-none font-black">||||| || |||</span>
+      </div>
+      <div class="flex items-center">
+        ${badgeHTML}
+      </div>
+    </div>
+
+    <!-- 2. Пустая область для сохранения вертикального баланса -->
+    <div class="h-10 z-10"></div>
+
+    <!-- 3. ЛИНИЯ ОТРЫВА (z-10 поверх водяного знака) -->
+    <div class="w-full border-t-4 border-dashed border-black/20 my-1 z-10 relative"></div>
+
+    <!-- 4. ОТРЫВНОЙ КУПОН: Чистый никнейм (z-10 поверх водяного знака) -->
+    <div class="w-full text-center z-10 relative">
+      <span class="font-black text-xs sm:text-sm tracking-tight leading-tight block truncate text-black" title="${player.name}">
+        ${player.name}
+      </span>
+    </div>
+  `;
 }

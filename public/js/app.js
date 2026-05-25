@@ -6,7 +6,8 @@ import {
   renderNotepad, 
   renderHistory, 
   updateLobbyUI, 
-  updateResultsUI 
+  updateResultsUI,
+  renderTargetPlayerTicket // <-- Импортируем функцию рендеринга
 } from './ui.js';
 import { 
   bgCanvas, 
@@ -22,11 +23,27 @@ import {
 
 const socket = io();
 
+// Глобальные переменные (объявляются строго по одному разу)
 let currentRoomCode = '';
-let myName = '';
+let myName = sessionStorage.getItem('username') || ''; // Восстанавливаем имя из сессии при перезапуске
 let isHost = false;
 let activePlayerId = '';
 let lastAskedQuestion = '';
+
+// КРАСИВЫЕ ВЫРАЗИТЕЛЬНЫЕ МУЛЬТЯШНЫЕ ЖИВОТНЫЕ (Gartic Phone Style)
+const AVATARS = ['🦊', '🐰', '🐼', '🐨', '🐯', '🐸', '🦁', '🐷', '🐮', '🦖', '🐙', '👾', '🦄', '🐝', '🐔', '🐧', '🦉', '🐹', '🐻', '🦥'];
+
+// Загрузка сохраненной аватарки или выбор случайной при первом входе
+let currentAvatarIndex = Math.floor(Math.random() * AVATARS.length);
+const savedAvatar = sessionStorage.getItem('avatar');
+if (savedAvatar) {
+  const foundIndex = AVATARS.indexOf(savedAvatar);
+  if (foundIndex !== -1) {
+    currentAvatarIndex = foundIndex;
+  }
+} else {
+  sessionStorage.setItem('avatar', AVATARS[currentAvatarIndex]);
+}
 
 // DOM ссылки
 const screenWelcome = document.getElementById('screen-welcome');
@@ -73,159 +90,377 @@ const reactionPanel = document.getElementById('reaction-panel');
 const btnRestart = document.getElementById('btn-restart');
 const btnMainMenu = document.getElementById('btn-main-menu');
 
-// Инициализация событий при загрузке DOM
-window.addEventListener('DOMContentLoaded', () => {
-  resizeCanvas();
+// Инициализация холста
+resizeCanvas();
 
-  // Привязка рисования
-  if (bgCanvas) {
-    bgCanvas.addEventListener('mousedown', startDrawBg);
-    window.addEventListener('mousemove', (e) => drawBg(e, currentRoomCode, socket));
-    window.addEventListener('mouseup', stopDrawBg);
+// === ИНИЦИАЛИЗАЦИЯ И СЛУЧАЙНЫЙ ВЫБОР АВАТАРОК ===
+const avatarDisplay = document.getElementById('avatar-display');
+if (avatarDisplay) {
+  avatarDisplay.textContent = AVATARS[currentAvatarIndex];
+}
 
-    bgCanvas.addEventListener('touchstart', startDrawBg);
-    window.addEventListener('touchmove', (e) => drawBg(e, currentRoomCode, socket));
-    window.addEventListener('touchend', stopDrawBg);
+// Кнопка-кубик на стыке аватара
+const btnRandomAvatar = document.getElementById('btn-random-avatar');
+if (btnRandomAvatar) {
+  btnRandomAvatar.addEventListener('click', () => {
+    let newIndex;
+    do {
+      newIndex = Math.floor(Math.random() * AVATARS.length);
+    } while (newIndex === currentAvatarIndex && AVATARS.length > 1);
+    
+    currentAvatarIndex = newIndex;
+    sessionStorage.setItem('avatar', AVATARS[currentAvatarIndex]);
+    if (avatarDisplay) {
+      avatarDisplay.textContent = AVATARS[currentAvatarIndex];
+    }
+  });
+}
+
+// === АВТОЗАПОЛНЕНИЕ КОДА КОМНАТЫ ИЗ ССЫЛКИ ===
+const urlParams = new URLSearchParams(window.location.search);
+const roomParam = urlParams.get('room');
+if (roomParam && roomCodeInput) {
+  roomCodeInput.value = roomParam.toUpperCase().substring(0, 4);
+  showToast('Код комнаты скопирован из ссылки!', 2000, true);
+}
+
+// Привязка рисования
+if (bgCanvas) {
+  bgCanvas.addEventListener('mousedown', startDrawBg);
+  window.addEventListener('mousemove', (e) => drawBg(e, currentRoomCode, socket));
+  window.addEventListener('mouseup', stopDrawBg);
+
+  bgCanvas.addEventListener('touchstart', startDrawBg);
+  window.addEventListener('touchmove', (e) => drawBg(e, currentRoomCode, socket));
+  window.addEventListener('touchend', stopDrawBg);
+}
+
+const btnClearDrawings = document.getElementById('btn-clear-drawings');
+if (btnClearDrawings) {
+  btnClearDrawings.addEventListener('click', () => {
+    if (currentRoomCode) {
+      socket.emit('clear_drawings', { roomCode: currentRoomCode });
+    }
+  });
+}
+
+// Резервный метод копирования ссылки для не-HTTPS окружений (смартфоны, локальная сеть)
+function copyTextFallback(text) {
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.style.top = "0";
+  textArea.style.left = "0";
+  textArea.style.position = "fixed";
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  try {
+    document.execCommand('copy');
+    showToast('Ссылка скопирована в буфер обмена!', 2500, true);
+  } catch (err) {
+    showToast(`Код комнаты: ${currentRoomCode}`, 3000, true);
   }
+  document.body.removeChild(textArea);
+}
 
-  const btnClearDrawings = document.getElementById('btn-clear-drawings');
-  if (btnClearDrawings) {
-    btnClearDrawings.addEventListener('click', () => {
-      if (currentRoomCode) {
-        socket.emit('clear_drawings', { roomCode: currentRoomCode });
-      }
-    });
-  }
+// Навесим клик на код комнаты для копирования
+if (lobbyCodeDisplay) {
+  lobbyCodeDisplay.addEventListener('click', () => {
+    playSound('click');
+    if (!currentRoomCode) return;
+    const joinLink = `${window.location.origin}?room=${currentRoomCode}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(joinLink).then(() => {
+        showToast('Ссылка скопирована в буфер обмена!', 2500, true);
+      }).catch(() => {
+        copyTextFallback(joinLink);
+      });
+    } else {
+      copyTextFallback(joinLink);
+    }
+  });
+}
 
-  // Навесим слушатели настроек
-  const collectAndSendOptions = () => {
-    if (!isHost || !currentRoomCode) return;
-    socket.emit('update_room_options', {
-      roomCode: currentRoomCode,
-      options: {
-        inputTimerDuration: parseInt(selectTimer.value, 10),
-        turnTimerDuration: parseInt(selectTurnTimer.value, 10)
-      }
-    });
-  };
+// Навесим слушатели настроек лобби
+const collectAndSendOptions = () => {
+  if (!isHost || !currentRoomCode) return;
+  socket.emit('update_room_options', {
+    roomCode: currentRoomCode,
+    options: {
+      inputTimerDuration: parseInt(selectTimer.value, 10),
+      turnTimerDuration: parseInt(selectTurnTimer.value, 10)
+    }
+  });
+};
 
-  if (selectTimer) selectTimer.addEventListener('change', collectAndSendOptions);
-  if (selectTurnTimer) selectTurnTimer.addEventListener('change', collectAndSendOptions);
+if (selectTimer) selectTimer.addEventListener('change', collectAndSendOptions);
+if (selectTurnTimer) selectTurnTimer.addEventListener('change', collectAndSendOptions);
 
-  // Навесим интерактивные кнопки
-  if (btnCreate) {
-    btnCreate.addEventListener('click', () => {
+// Навесим интерактивные кнопки
+if (btnCreate) {
+  btnCreate.addEventListener('click', () => {
+    playSound('click');
+    const name = usernameInput.value.trim();
+    if (!name) return showToast('Имя введи!', 3000, false);
+    myName = name;
+    sessionStorage.setItem('username', name); 
+    socket.emit('create_room', { username: name, avatar: sessionStorage.getItem('avatar') || AVATARS[currentAvatarIndex] });
+  });
+}
+
+if (btnJoin) {
+  btnJoin.addEventListener('click', () => {
+    playSound('click');
+    const name = usernameInput.value.trim();
+    const code = roomCodeInput.value.toUpperCase().trim(); 
+    if (!name || code.length < 4) return showToast('Заполни поля имени и кода комнаты!', 3000, false);
+    myName = name;
+    sessionStorage.setItem('username', name); 
+    sessionStorage.setItem('roomCode', code);   
+    socket.emit('join_room', { username: name, roomCode: code, avatar: sessionStorage.getItem('avatar') || AVATARS[currentAvatarIndex] });
+  });
+}
+
+if (btnStart) {
+  btnStart.addEventListener('click', () => {
+    playSound('click');
+    socket.emit('start_game', { roomCode: currentRoomCode });
+  });
+}
+
+if (btnSubmit) {
+  btnSubmit.addEventListener('click', () => {
+    playSound('click');
+    const text = characterInput.value.trim();
+    if (!text) return showToast('Введи персонажа!', 3000, false);
+    socket.emit('submit_character', { roomCode: currentRoomCode, character: text });
+  });
+}
+
+const btnAsk = document.getElementById('btn-ask');
+if (btnAsk) {
+  btnAsk.addEventListener('click', () => {
+    playSound('alarm');
+    const qInput = document.getElementById('question-input');
+    const questionText = qInput.value.trim();
+    if (!questionText) return showToast('Запиши вопрос сначала!', 3000, false);
+    
+    btnAsk.disabled = true;
+    const btnGuess = document.getElementById('btn-guess-attempt');
+    if (btnGuess) btnGuess.disabled = true;
+    btnAsk.classList.add('opacity-50', 'cursor-not-allowed');
+    if (btnGuess) btnGuess.classList.add('opacity-50', 'cursor-not-allowed');
+
+    socket.emit('submit_question', { roomCode: currentRoomCode, question: questionText });
+    qInput.value = '';
+  });
+}
+
+const btnGuess = document.getElementById('btn-guess-attempt');
+if (btnGuess) {
+  btnGuess.addEventListener('click', () => {
+    const guess = prompt('Кто ты? Напиши имя персонажа:');
+    if (guess && guess.trim() !== '') {
+      playSound('alarm');
+      socket.emit('guess_attempt', { roomCode: currentRoomCode, guess });
+    }
+  });
+}
+
+// Привязка кнопок голосования ДА/ХЗ/НЕТ по их ID
+const btnVoteYes = document.getElementById('btn-vote-yes');
+const btnVoteDontKnow = document.getElementById('btn-vote-dontknow');
+const btnVoteNo = document.getElementById('btn-vote-no');
+
+if (btnVoteYes) {
+  btnVoteYes.addEventListener('click', () => {
+    playSound('click');
+    if (!currentRoomCode) return;
+    socket.emit('submit_vote', { roomCode: currentRoomCode, voteType: 'yes' });
+    if (votingButtonsGrid) votingButtonsGrid.classList.add('hidden');
+  });
+}
+
+if (btnVoteDontKnow) {
+  btnVoteDontKnow.addEventListener('click', () => {
+    playSound('click');
+    if (!currentRoomCode) return;
+    socket.emit('submit_vote', { roomCode: currentRoomCode, voteType: 'dont_know' });
+    if (votingButtonsGrid) votingButtonsGrid.classList.add('hidden');
+  });
+}
+
+if (btnVoteNo) {
+  btnVoteNo.addEventListener('click', () => {
+    playSound('click');
+    if (!currentRoomCode) return;
+    socket.emit('submit_vote', { roomCode: currentRoomCode, voteType: 'no' });
+    if (votingButtonsGrid) votingButtonsGrid.classList.add('hidden');
+  });
+}
+
+// Привязка кнопок верификации догадки ЗАСЧИТАТЬ/ОТКЛОНИТЬ по их ID
+const btnVerdictCorrect = document.getElementById('btn-verdict-correct');
+const btnVerdictIncorrect = document.getElementById('btn-verdict-incorrect');
+
+if (btnVerdictCorrect) {
+  btnVerdictCorrect.addEventListener('click', () => {
+    playSound('click');
+    if (!currentRoomCode) return;
+    socket.emit('submit_guess_verdict', { roomCode: currentRoomCode, isCorrect: true });
+    const verBlock = document.getElementById('guess-verification-block');
+    if (verBlock) verBlock.classList.add('hidden');
+    if (gameActiveRoundContent) gameActiveRoundContent.classList.remove('hidden');
+  });
+}
+
+if (btnVerdictIncorrect) {
+  btnVerdictIncorrect.addEventListener('click', () => {
+    playSound('click');
+    if (!currentRoomCode) return;
+    socket.emit('submit_guess_verdict', { roomCode: currentRoomCode, isCorrect: false });
+    const verBlock = document.getElementById('guess-verification-block');
+    if (verBlock) verBlock.classList.add('hidden');
+    if (gameActiveRoundContent) gameActiveRoundContent.classList.remove('hidden');
+  });
+}
+
+if (btnRestart) {
+  btnRestart.addEventListener('click', () => {
+    playSound('click');
+    socket.emit('request_restart', { roomCode: currentRoomCode });
+  });
+}
+
+if (btnLeave) {
+  btnLeave.addEventListener('click', () => {
+    playSound('click');
+    sessionStorage.clear();
+    location.reload();
+  });
+}
+
+if (btnMainMenu) {
+  btnMainMenu.addEventListener('click', () => {
+    playSound('click');
+    sessionStorage.clear();
+    location.reload();
+  });
+}
+
+// Привязка эмодзи-реакций
+const reactionMapping = {
+  'btn-reaction-go': 'ГО!',
+  'btn-reaction-laugh': '😂',
+  'btn-reaction-poop': '💩',
+  'btn-reaction-party': '🎉',
+  'btn-reaction-shock': '😱'
+};
+
+Object.entries(reactionMapping).forEach(([id, emoji]) => {
+  const btn = document.getElementById(id);
+  if (btn) {
+    btn.addEventListener('click', () => {
       playSound('click');
-      const name = usernameInput.value.trim();
-      if (!name) return showToast('Имя введи!', 3000, false);
-      myName = name;
-      sessionStorage.setItem('username', name); 
-      socket.emit('create_room', { username: name });
+      if (currentRoomCode) {
+        socket.emit('send_reaction', { roomCode: currentRoomCode, emoji });
+      }
     });
+  }
+});
+
+
+// === ЭКСПОРТ ИНЛАЙНОВЫХ ФУНКЦИЙ ДЛЯ СОВМЕСТИМОСТИ (window.X) ===
+
+window.getRandomCharacter = function(category) {
+  playSound('click');
+  socket.emit('get_random_character', { category });
+};
+
+window.copyRoomLink = function() {
+  playSound('click');
+  if (!currentRoomCode) return;
+  const joinLink = `${window.location.origin}?room=${currentRoomCode}`;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(joinLink).then(() => {
+      showToast('Ссылка скопирована в буфер обмена!', 2500, true);
+    }).catch(() => {
+      copyTextFallback(joinLink);
+    });
+  } else {
+    copyTextFallback(joinLink);
+  }
+};
+
+window.clearBgCanvas = clearBgCanvas;
+
+
+// ПЛАВНЫЕ ПЕРЕХОДЫ МЕЖДУ ЭКРАНАМИ
+function showScreen(targetScreen) {
+  const screens = [screenWelcome, screenLobby, screenInput, screenGame, screenResults];
+  const currentScreen = screens.find(s => !s.classList.contains('hidden'));
+  
+  if (currentScreen && currentScreen !== targetScreen) {
+    currentScreen.classList.add('opacity-0', 'scale-95');
+    currentScreen.classList.remove('opacity-100', 'scale-100');
+    
+    setTimeout(() => {
+      currentScreen.classList.add('hidden');
+      targetScreen.classList.remove('hidden');
+      targetScreen.offsetHeight; 
+      targetScreen.classList.add('opacity-100', 'scale-100');
+      targetScreen.classList.remove('opacity-0', 'scale-95');
+    }, 300);
+  } else {
+    targetScreen.classList.remove('hidden');
+    targetScreen.classList.add('opacity-100', 'scale-100');
+    targetScreen.classList.remove('opacity-0', 'scale-95');
+  }
+}
+
+// СИНХРОНИЗАЦИЯ НАСТРОЕК ЛОББИ
+function syncLobbySettingsUI(options) {
+  if (!options) return;
+  if (selectTimer) selectTimer.value = options.inputTimerDuration;
+  if (selectTurnTimer) selectTurnTimer.value = options.turnTimerDuration !== undefined ? options.turnTimerDuration : 60;
+
+  if (selectTimer) selectTimer.disabled = !isHost;
+  if (selectTurnTimer) selectTurnTimer.disabled = !isHost;
+}
+
+
+socket.on('connect', () => {
+  console.log("✅ Соединение успешно установлено! Мой ID:", socket.id);
+
+  if (btnCreate) {
+    btnCreate.disabled = false;
+    btnCreate.className = "w-full h-[58px] sm:h-[64px] text-black font-black text-sm sm:text-lg flex items-center justify-center gap-3 btn-cartoon-create cursor-pointer";
+    btnCreate.innerHTML = `
+      <span class="w-7 h-7 bg-white text-[#0c0d21] border-[2.5px] border-[#0c0d21] rounded-full flex items-center justify-center font-black shadow-sm select-none shrink-0">
+        <svg class="w-4 h-4 stroke-current stroke-[4.5]" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+      </span>
+      Создать новую игру
+    `;
   }
 
   if (btnJoin) {
-    btnJoin.addEventListener('click', () => {
-      playSound('click');
-      const name = usernameInput.value.trim();
-      const code = roomCodeInput.value.trim();
-      if (!name || code.length < 4) return showToast('Заполни поля имени и кода комнаты!', 3000, false);
-      myName = name;
-      sessionStorage.setItem('username', name); 
-      sessionStorage.setItem('roomCode', code);   
-      socket.emit('join_room', { username: name, roomCode: code });
-    });
+    btnJoin.disabled = false;
+    btnJoin.className = "w-[55%] h-[56px] sm:h-[62px] bg-[#2cd15c] hover:bg-[#25be51] text-white font-black text-lg sm:text-2xl rounded-2xl border-[4px] border-[#0c0d21] shadow-[0_4px_0_0_#0c0d21] transition-all uppercase tracking-widest flex items-center justify-center cartoon-interactive rotate-[1.5deg] cursor-pointer";
+    btnJoin.innerHTML = `<span class="filter drop-shadow-[0_2.5px_2.5px_rgba(0,0,0,0.45)]">ВОЙТИ</span>`;
   }
 
-  if (btnStart) {
-    btnStart.addEventListener('click', () => {
-      playSound('click');
-      socket.emit('start_game', { roomCode: currentRoomCode });
+  const savedName = sessionStorage.getItem('username');
+  const savedRoom = sessionStorage.getItem('roomCode');
+  if (savedName && savedRoom) {
+    console.log("Попытка восстановить игровую сессию для:", savedName);
+    socket.emit('join_room', { 
+      username: savedName, 
+      roomCode: savedRoom, 
+      avatar: sessionStorage.getItem('avatar') || AVATARS[currentAvatarIndex] 
     });
   }
-
-  if (btnSubmit) {
-    btnSubmit.addEventListener('click', () => {
-      playSound('click');
-      const text = characterInput.value.trim();
-      if (!text) return showToast('Введи персонажа!', 3000, false);
-      socket.emit('submit_character', { roomCode: currentRoomCode, character: text });
-    });
-  }
-
-  const btnAsk = document.getElementById('btn-ask');
-  if (btnAsk) {
-    btnAsk.addEventListener('click', () => {
-      playSound('alarm');
-      const qInput = document.getElementById('question-input');
-      const questionText = qInput.value.trim();
-      if (!questionText) return showToast('Запиши вопрос сначала!', 3000, false);
-      
-      btnAsk.disabled = true;
-      const btnGuess = document.getElementById('btn-guess-attempt');
-      if (btnGuess) btnGuess.disabled = true;
-      btnAsk.classList.add('opacity-50', 'cursor-not-allowed');
-      if (btnGuess) btnGuess.classList.add('opacity-50', 'cursor-not-allowed');
-
-      socket.emit('submit_question', { roomCode: currentRoomCode, question: questionText });
-      qInput.value = '';
-    });
-  }
-
-  const btnGuess = document.getElementById('btn-guess-attempt');
-  if (btnGuess) {
-    btnGuess.addEventListener('click', () => {
-      const guess = prompt('Кто ты? Напиши имя персонажа:');
-      if (guess && guess.trim() !== '') {
-        playSound('alarm');
-        socket.emit('guess_attempt', { roomCode: currentRoomCode, guess });
-      }
-    });
-  }
-
-  if (btnRestart) {
-    btnRestart.addEventListener('click', () => {
-      playSound('click');
-      socket.emit('request_restart', { roomCode: currentRoomCode });
-    });
-  }
-
-  if (btnLeave) {
-    btnLeave.addEventListener('click', () => {
-      playSound('click');
-      sessionStorage.clear();
-      location.reload();
-    });
-  }
-
-  if (btnMainMenu) {
-    btnMainMenu.addEventListener('click', () => {
-      playSound('click');
-      sessionStorage.clear();
-      location.reload();
-    });
-  }
-
-  // Привязка эмодзи-реакций
-  const reactionMapping = {
-    'btn-reaction-go': 'ГО!',
-    'btn-reaction-laugh': '😂',
-    'btn-reaction-poop': '💩',
-    'btn-reaction-party': '🎉',
-    'btn-reaction-shock': '😱'
-  };
-
-  Object.entries(reactionMapping).forEach(([id, emoji]) => {
-    const btn = document.getElementById(id);
-    if (btn) {
-      btn.addEventListener('click', () => {
-        playSound('click');
-        if (currentRoomCode) {
-          socket.emit('send_reaction', { roomCode: currentRoomCode, emoji });
-        }
-      });
-    }
-  });
 });
 
 // СОБЫТИЯ SOCKET.IO
@@ -280,6 +515,13 @@ socket.on('toast_broadcast', (data) => {
   showToast(data.message, 4000, data.isSuccess);
 });
 
+// ПРИЕМ ТАЙНОГО ПЕРСОНАЖА
+socket.on('random_character_result', (data) => {
+  if (characterInput) {
+    characterInput.value = data.character;
+  }
+});
+
 socket.on('game_state_update', (data) => {
   if (!data) return;
 
@@ -289,7 +531,19 @@ socket.on('game_state_update', (data) => {
   }
 
   if (data.status === 'INPUTTING') {
-    if (targetPlayerDisplay) targetPlayerDisplay.textContent = data.targetName || '---';
+    const playersArray = data.players || [];
+    const targetPlayer = playersArray.find(p => p.name === data.targetName);
+    const targetIndex = playersArray.findIndex(p => p.name === data.targetName);
+
+    if (targetPlayer && targetPlayerDisplay) {
+      // Рисуем полноценный билет вместо обычной плашки
+      renderTargetPlayerTicket(targetPlayer, targetPlayerDisplay, targetIndex !== -1 ? targetIndex : 0);
+    } else if (targetPlayerDisplay) {
+      // Фолбэк на случай непредвиденных сбоев
+      targetPlayerDisplay.className = "inline-block bg-pink-500 border-4 border-black px-6 py-2 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1.5deg]";
+      targetPlayerDisplay.textContent = data.targetName || '---';
+    }
+
     showScreen(screenInput);
 
     const me = data.players ? data.players.find(p => p.socketId === socket.id) : null;
@@ -313,29 +567,30 @@ socket.on('game_state_update', (data) => {
       if (inputFormZone) inputFormZone.classList.remove('hidden');
       if (waitingZone) waitingZone.classList.add('hidden');
     }
-  } 
+  }
   else if (data.status === 'PLAYING') {
     activePlayerId = data.activePlayerId || '';
     showScreen(screenGame);
 
     const playersArray = data.players || [];
     const activePlayer = playersArray.find(p => p.socketId === activePlayerId);
+    const activeIndex = playersArray.findIndex(p => p.socketId === activePlayerId);
+
+    // Динамически рендерим билет активного угадывающего игрока по центру
+    const activeTicketContainer = document.getElementById('game-active-player-ticket-container');
+    if (activeTicketContainer && activePlayer) {
+      renderTargetPlayerTicket(activePlayer, activeTicketContainer, activeIndex !== -1 ? activeIndex : 0);
+    }
 
     const verBlock = document.getElementById('guess-verification-block');
     if (verBlock) verBlock.classList.add('hidden');
     if (gameActiveRoundContent) gameActiveRoundContent.classList.remove('hidden');
+    document.getElementById('guess-waiting-block').classList.add('hidden');
     
-    const waitBlock = document.getElementById('guess-waiting-block');
-    if (waitBlock) waitBlock.classList.add('hidden');
-    
-    const btnAsk = document.getElementById('btn-ask');
-    const btnGuess = document.getElementById('btn-guess-attempt');
-    if (btnAsk && btnGuess) {
-      btnAsk.disabled = false;
-      btnGuess.disabled = false;
-      btnAsk.classList.remove('opacity-50', 'cursor-not-allowed');
-      btnGuess.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
+    document.getElementById('btn-ask').disabled = false;
+    document.getElementById('btn-guess-attempt').disabled = false;
+    document.getElementById('btn-ask').classList.remove('opacity-50', 'cursor-not-allowed');
+    document.getElementById('btn-guess-attempt').classList.remove('opacity-50', 'cursor-not-allowed');
 
     renderNotepad(data.myPersonalHistory || []);
     renderHistory(data.activePlayerHistory || [], gameHistoryLog);
@@ -352,36 +607,35 @@ socket.on('game_state_update', (data) => {
     const activePlayerEl = document.getElementById('game-active-player');
 
     if (socket.id === activePlayerId) {
-      if (subtitleEl) subtitleEl.textContent = 'Твоя очередь!';
-      if (activePlayerEl) {
-        activePlayerEl.textContent = 'ТЫ ОТГАДЫВАЕШЬ!';
-        activePlayerEl.className = 'text-2xl font-black text-pink-500 uppercase tracking-wide drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]';
-      }
-      const historyBlock = document.getElementById('game-history-block');
-      if (historyBlock) historyBlock.classList.add('hidden');
+      document.getElementById('game-active-subtitle').textContent = 'Твоя очередь!';
+      gameActivePlayer.textContent = 'ТЫ ОТГАДЫВАЕШЬ!';
+      gameActivePlayer.className = 'text-2xl font-black text-pink-500 uppercase tracking-wide drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]';
 
-      if (gameAnswererZone) gameAnswererZone.classList.add('hidden');
-      if (gameGuesserZone) gameGuesserZone.classList.remove('hidden');
-      if (questionInputBlock) questionInputBlock.classList.remove('hidden');
-      if (liveVotesResults) liveVotesResults.classList.add('hidden');
+      document.getElementById('game-history-block').classList.add('hidden');
+
+      gameAnswererZone.classList.add('hidden');
+      gameGuesserZone.classList.remove('hidden');
+      questionInputBlock.classList.remove('hidden');
+      liveVotesResults.classList.add('hidden');
     } else {
-      if (subtitleEl) subtitleEl.textContent = 'Сейчас угадывает:';
-      if (activePlayerEl) {
-        activePlayerEl.textContent = activePlayer ? activePlayer.name : '---';
-        activePlayerEl.className = 'text-2xl font-black text-yellow-300 uppercase tracking-wide drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]';
-      }
-      const historyBlock = document.getElementById('game-history-block');
-      if (historyBlock) historyBlock.classList.remove('hidden');
+      document.getElementById('game-active-subtitle').textContent = 'Сейчас угадывает:';
+      gameActivePlayer.textContent = activePlayer ? activePlayer.name : '---';
+      gameActivePlayer.className = 'text-2xl font-black text-yellow-300 uppercase tracking-wide drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]';
 
-      if (gameAnswererZone) gameAnswererZone.classList.remove('hidden');
-      if (gameGuesserZone) gameGuesserZone.classList.add('hidden');
+      document.getElementById('game-history-block').classList.remove('hidden');
+
+      gameAnswererZone.classList.remove('hidden');
+      gameGuesserZone.classList.add('hidden');
       
-      if (secretCharacterDisplay) {
-        secretCharacterDisplay.textContent = activePlayer ? (activePlayer.character || '---') : '---';
+      if (activePlayer) {
+        secretCharacterDisplay.textContent = activePlayer.character || '---';
+      } else {
+        secretCharacterDisplay.textContent = '---';
       }
-      if (gameQuestionText) gameQuestionText.textContent = 'Ожидаем вопрос...';
-      if (votingButtonsGrid) votingButtonsGrid.classList.add('hidden');
-      if (voteProgressStatus) voteProgressStatus.classList.add('hidden');
+      
+      gameQuestionText.textContent = 'Ожидаем вопрос...';
+      votingButtonsGrid.classList.add('hidden');
+      voteProgressStatus.classList.add('hidden');
     }
 
     if (data.currentQuestion) {
@@ -593,7 +847,7 @@ socket.on('broadcast_reaction', (data) => {
   if (!container) return;
 
   const el = document.createElement('div');
-  el.className = 'floating-emoji bg-indigo-950/90 text-white border-2 border-black px-3 py-1.5 rounded-full font-black text-sm flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]';
+  el.className = 'floating-emoji bg-indigo-950/90 text-white border-2 border-black px-3 py-1.5 rounded-full font-black text-sm flex items-center gap-1 shadow-[2px_2px_0px_rgba(0,0,0,1)]';
   el.innerHTML = `<span>${senderName}:</span> <span class="text-2xl">${emoji}</span>`;
 
   const randomX = Math.floor(Math.random() * 60) + 10; 

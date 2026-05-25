@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
-const initSockets = require('./sockets/socketManager');
+const initSockets = require('./socketManager'); // Изменено на локальный импорт без папки sockets
 
 const app = express();
 const server = http.createServer(app);
