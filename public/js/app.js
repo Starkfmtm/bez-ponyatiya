@@ -7,7 +7,7 @@ import {
   renderHistory, 
   updateLobbyUI, 
   updateResultsUI,
-  renderTargetPlayerTicket // <-- Импортируем функцию рендеринга
+  renderTargetPlayerTicket
 } from './ui.js';
 import { 
   bgCanvas, 
@@ -23,17 +23,14 @@ import {
 
 const socket = io();
 
-// Глобальные переменные (объявляются строго по одному разу)
 let currentRoomCode = '';
-let myName = sessionStorage.getItem('username') || ''; // Восстанавливаем имя из сессии при перезапуске
+let myName = sessionStorage.getItem('username') || '';
 let isHost = false;
 let activePlayerId = '';
 let lastAskedQuestion = '';
 
-// КРАСИВЫЕ ВЫРАЗИТЕЛЬНЫЕ МУЛЬТЯШНЫЕ ЖИВОТНЫЕ (Gartic Phone Style)
 const AVATARS = ['🦊', '🐰', '🐼', '🐨', '🐯', '🐸', '🦁', '🐷', '🐮', '🦖', '🐙', '👾', '🦄', '🐝', '🐔', '🐧', '🦉', '🐹', '🐻', '🦥'];
 
-// Загрузка сохраненной аватарки или выбор случайной при первом входе
 let currentAvatarIndex = Math.floor(Math.random() * AVATARS.length);
 const savedAvatar = sessionStorage.getItem('avatar');
 if (savedAvatar) {
@@ -45,7 +42,6 @@ if (savedAvatar) {
   sessionStorage.setItem('avatar', AVATARS[currentAvatarIndex]);
 }
 
-// DOM ссылки
 const screenWelcome = document.getElementById('screen-welcome');
 const screenLobby = document.getElementById('screen-lobby');
 const screenInput = document.getElementById('screen-input');
@@ -90,16 +86,13 @@ const reactionPanel = document.getElementById('reaction-panel');
 const btnRestart = document.getElementById('btn-restart');
 const btnMainMenu = document.getElementById('btn-main-menu');
 
-// Инициализация холста
 resizeCanvas();
 
-// === ИНИЦИАЛИЗАЦИЯ И СЛУЧАЙНЫЙ ВЫБОР АВАТАРОК ===
 const avatarDisplay = document.getElementById('avatar-display');
 if (avatarDisplay) {
   avatarDisplay.textContent = AVATARS[currentAvatarIndex];
 }
 
-// Кнопка-кубик на стыке аватара
 const btnRandomAvatar = document.getElementById('btn-random-avatar');
 if (btnRandomAvatar) {
   btnRandomAvatar.addEventListener('click', () => {
@@ -116,7 +109,6 @@ if (btnRandomAvatar) {
   });
 }
 
-// === АВТОЗАПОЛНЕНИЕ КОДА КОМНАТЫ ИЗ ССЫЛКИ ===
 const urlParams = new URLSearchParams(window.location.search);
 const roomParam = urlParams.get('room');
 if (roomParam && roomCodeInput) {
@@ -124,7 +116,6 @@ if (roomParam && roomCodeInput) {
   showToast('Код комнаты скопирован из ссылки!', 2000, true);
 }
 
-// Привязка рисования
 if (bgCanvas) {
   bgCanvas.addEventListener('mousedown', startDrawBg);
   window.addEventListener('mousemove', (e) => drawBg(e, currentRoomCode, socket));
@@ -144,7 +135,6 @@ if (btnClearDrawings) {
   });
 }
 
-// Резервный метод копирования ссылки для не-HTTPS окружений (смартфоны, локальная сеть)
 function copyTextFallback(text) {
   const textArea = document.createElement("textarea");
   textArea.value = text;
@@ -163,7 +153,6 @@ function copyTextFallback(text) {
   document.body.removeChild(textArea);
 }
 
-// Навесим клик на код комнаты для копирования
 if (lobbyCodeDisplay) {
   lobbyCodeDisplay.addEventListener('click', () => {
     playSound('click');
@@ -181,7 +170,6 @@ if (lobbyCodeDisplay) {
   });
 }
 
-// Навесим слушатели настроек лобби
 const collectAndSendOptions = () => {
   if (!isHost || !currentRoomCode) return;
   socket.emit('update_room_options', {
@@ -196,7 +184,6 @@ const collectAndSendOptions = () => {
 if (selectTimer) selectTimer.addEventListener('change', collectAndSendOptions);
 if (selectTurnTimer) selectTurnTimer.addEventListener('change', collectAndSendOptions);
 
-// Навесим интерактивные кнопки
 if (btnCreate) {
   btnCreate.addEventListener('click', () => {
     playSound('click');
@@ -221,6 +208,52 @@ if (btnJoin) {
   });
 }
 
+// Слушатели клавиши Enter на полях ввода для удобной отправки
+if (usernameInput) {
+  usernameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const code = roomCodeInput.value.trim();
+      if (code.length >= 4) {
+        btnJoin.click();
+      } else {
+        roomCodeInput.focus();
+      }
+    }
+  });
+}
+
+if (roomCodeInput) {
+  roomCodeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      btnJoin.click();
+    }
+  });
+}
+
+if (characterInput) {
+  characterInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      btnSubmit.click();
+    }
+  });
+}
+
+const qInput = document.getElementById('question-input');
+if (qInput) {
+  qInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const btnAsk = document.getElementById('btn-ask');
+      if (btnAsk && !btnAsk.disabled) {
+        btnAsk.click();
+      }
+    }
+  });
+}
+
 if (btnStart) {
   btnStart.addEventListener('click', () => {
     playSound('click');
@@ -241,7 +274,6 @@ const btnAsk = document.getElementById('btn-ask');
 if (btnAsk) {
   btnAsk.addEventListener('click', () => {
     playSound('alarm');
-    const qInput = document.getElementById('question-input');
     const questionText = qInput.value.trim();
     if (!questionText) return showToast('Запиши вопрос сначала!', 3000, false);
     
@@ -267,7 +299,6 @@ if (btnGuess) {
   });
 }
 
-// Привязка кнопок голосования ДА/ХЗ/НЕТ по их ID
 const btnVoteYes = document.getElementById('btn-vote-yes');
 const btnVoteDontKnow = document.getElementById('btn-vote-dontknow');
 const btnVoteNo = document.getElementById('btn-vote-no');
@@ -299,7 +330,6 @@ if (btnVoteNo) {
   });
 }
 
-// Привязка кнопок верификации догадки ЗАСЧИТАТЬ/ОТКЛОНИТЬ по их ID
 const btnVerdictCorrect = document.getElementById('btn-verdict-correct');
 const btnVerdictIncorrect = document.getElementById('btn-verdict-incorrect');
 
@@ -348,7 +378,6 @@ if (btnMainMenu) {
   });
 }
 
-// Привязка эмодзи-реакций
 const reactionMapping = {
   'btn-reaction-go': 'ГО!',
   'btn-reaction-laugh': '😂',
@@ -357,20 +386,29 @@ const reactionMapping = {
   'btn-reaction-shock': '😱'
 };
 
+let reactionCooldown = false;
+
 Object.entries(reactionMapping).forEach(([id, emoji]) => {
   const btn = document.getElementById(id);
   if (btn) {
     btn.addEventListener('click', () => {
+      if (reactionCooldown) {
+        showToast('Не торопись! Подожди немного перед следующей реакцией.', 1500, false);
+        return;
+      }
       playSound('click');
       if (currentRoomCode) {
         socket.emit('send_reaction', { roomCode: currentRoomCode, emoji });
+        reactionCooldown = true;
+        if (reactionPanel) reactionPanel.classList.add('opacity-60');
+        setTimeout(() => {
+          reactionCooldown = false;
+          if (reactionPanel) reactionPanel.classList.remove('opacity-60');
+        }, 1000); 
       }
     });
   }
 });
-
-
-// === ЭКСПОРТ ИНЛАЙНОВЫХ ФУНКЦИЙ ДЛЯ СОВМЕСТИМОСТИ (window.X) ===
 
 window.getRandomCharacter = function(category) {
   playSound('click');
@@ -394,8 +432,6 @@ window.copyRoomLink = function() {
 
 window.clearBgCanvas = clearBgCanvas;
 
-
-// ПЛАВНЫЕ ПЕРЕХОДЫ МЕЖДУ ЭКРАНАМИ
 function showScreen(targetScreen) {
   const screens = [screenWelcome, screenLobby, screenInput, screenGame, screenResults];
   const currentScreen = screens.find(s => !s.classList.contains('hidden'));
@@ -418,7 +454,6 @@ function showScreen(targetScreen) {
   }
 }
 
-// СИНХРОНИЗАЦИЯ НАСТРОЕК ЛОББИ
 function syncLobbySettingsUI(options) {
   if (!options) return;
   if (selectTimer) selectTimer.value = options.inputTimerDuration;
@@ -427,7 +462,6 @@ function syncLobbySettingsUI(options) {
   if (selectTimer) selectTimer.disabled = !isHost;
   if (selectTurnTimer) selectTurnTimer.disabled = !isHost;
 }
-
 
 socket.on('connect', () => {
   console.log("✅ Соединение успешно установлено! Мой ID:", socket.id);
@@ -463,7 +497,6 @@ socket.on('connect', () => {
   }
 });
 
-// СОБЫТИЯ SOCKET.IO
 socket.on('room_created', (data) => {
   currentRoomCode = data.roomCode;
   sessionStorage.setItem('roomCode', currentRoomCode);
@@ -515,7 +548,6 @@ socket.on('toast_broadcast', (data) => {
   showToast(data.message, 4000, data.isSuccess);
 });
 
-// ПРИЕМ ТАЙНОГО ПЕРСОНАЖА
 socket.on('random_character_result', (data) => {
   if (characterInput) {
     characterInput.value = data.character;
@@ -536,10 +568,8 @@ socket.on('game_state_update', (data) => {
     const targetIndex = playersArray.findIndex(p => p.name === data.targetName);
 
     if (targetPlayer && targetPlayerDisplay) {
-      // Рисуем полноценный билет вместо обычной плашки
       renderTargetPlayerTicket(targetPlayer, targetPlayerDisplay, targetIndex !== -1 ? targetIndex : 0);
     } else if (targetPlayerDisplay) {
-      // Фолбэк на случай непредвиденных сбоев
       targetPlayerDisplay.className = "inline-block bg-pink-500 border-4 border-black px-6 py-2 rounded-2xl font-title text-2xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform rotate-[1.5deg]";
       targetPlayerDisplay.textContent = data.targetName || '---';
     }
@@ -576,7 +606,6 @@ socket.on('game_state_update', (data) => {
     const activePlayer = playersArray.find(p => p.socketId === activePlayerId);
     const activeIndex = playersArray.findIndex(p => p.socketId === activePlayerId);
 
-    // Динамически рендерим билет активного угадывающего игрока по центру
     const activeTicketContainer = document.getElementById('game-active-player-ticket-container');
     if (activeTicketContainer && activePlayer) {
       renderTargetPlayerTicket(activePlayer, activeTicketContainer, activeIndex !== -1 ? activeIndex : 0);
@@ -604,12 +633,13 @@ socket.on('game_state_update', (data) => {
     if (reactionPanel) reactionPanel.classList.remove('hidden');
 
     const subtitleEl = document.getElementById('game-active-subtitle');
-    const activePlayerEl = document.getElementById('game-active-player');
 
     if (socket.id === activePlayerId) {
-      document.getElementById('game-active-subtitle').textContent = 'Твоя очередь!';
-      gameActivePlayer.textContent = 'ТЫ ОТГАДЫВАЕШЬ!';
-      gameActivePlayer.className = 'text-2xl font-black text-pink-500 uppercase tracking-wide drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]';
+      if (subtitleEl) subtitleEl.textContent = 'Твоя очередь!';
+      if (gameActivePlayer) {
+        gameActivePlayer.textContent = 'ТЫ ОТГАДЫВАЕШЬ!';
+        gameActivePlayer.className = 'text-xl sm:text-2xl font-black text-pink-500 uppercase tracking-wide drop-shadow-[2px_2px_0px_rgba(0,0,0,1)] truncate max-w-[260px] block mt-1';
+      }
 
       document.getElementById('game-history-block').classList.add('hidden');
 
@@ -618,9 +648,11 @@ socket.on('game_state_update', (data) => {
       questionInputBlock.classList.remove('hidden');
       liveVotesResults.classList.add('hidden');
     } else {
-      document.getElementById('game-active-subtitle').textContent = 'Сейчас угадывает:';
-      gameActivePlayer.textContent = activePlayer ? activePlayer.name : '---';
-      gameActivePlayer.className = 'text-2xl font-black text-yellow-300 uppercase tracking-wide drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]';
+      if (subtitleEl) subtitleEl.textContent = 'Сейчас угадывает:';
+      if (gameActivePlayer) {
+        gameActivePlayer.textContent = activePlayer ? activePlayer.name : '---';
+        gameActivePlayer.className = 'text-xl sm:text-2xl font-black text-yellow-300 uppercase tracking-wide drop-shadow-[2px_2px_0px_rgba(0,0,0,1)] truncate max-w-[260px] block mt-1';
+      }
 
       document.getElementById('game-history-block').classList.remove('hidden');
 
@@ -746,7 +778,7 @@ socket.on('voting_complete', (data) => {
       verdictText.classList.remove('hidden');
 
       if (isYes) {
-        verdictText.textContent = '🎉  ДА! Задай еще вопрос.';
+        verdictText.textContent = '🎉 ДА! Задай еще вопрос.';
         verdictText.className = 'text-xs font-black uppercase text-green-400 mt-2 animate-bounce';
         
         setTimeout(() => {
@@ -791,7 +823,7 @@ socket.on('voting_complete', (data) => {
           btnGuess.classList.add('opacity-50', 'cursor-not-allowed');
         }
 
-        verdictText.textContent = '❌  НЕТ. Ход переходит...';
+        verdictText.textContent = '❌ НЕТ. Ход переходит...';
         verdictText.className = 'text-xs font-black uppercase text-red-400 mt-2';
       }
     }

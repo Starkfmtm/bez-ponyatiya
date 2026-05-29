@@ -61,7 +61,6 @@ export function renderNotepad(historyArray) {
   const yesItems = historyArray ? historyArray.filter(item => item.verdict && item.verdict.includes('ДА')) : [];
   const noItems = historyArray ? historyArray.filter(item => !item.verdict || !item.verdict.includes('ДА')) : [];
 
-  // Рендерим строки ДА с ЗЕЛЕНЫМИ линиями
   yesItems.forEach(item => {
     const itemEl = document.createElement('div');
     itemEl.className = "text-[11px] text-stone-900 font-semibold border-b border-green-300/80 truncate px-1";
@@ -71,7 +70,6 @@ export function renderNotepad(historyArray) {
     yesLog.appendChild(itemEl);
   });
 
-  // Рендерим строки НЕТ с КРАСНЫМИ линиями
   noItems.forEach(item => {
     const itemEl = document.createElement('div');
     itemEl.className = "text-[11px] text-stone-900 font-semibold border-b border-red-300/80 truncate px-1";
@@ -81,7 +79,6 @@ export function renderNotepad(historyArray) {
     noLog.appendChild(itemEl);
   });
 
-  // Дорисовать недостающие пустые линии соответствующего цвета
   fillWithLines(yesLog, Math.max(5, yesItems.length), "border-green-300/80");
   fillWithLines(noLog, Math.max(5, noItems.length), "border-red-300/80");
 
@@ -145,33 +142,28 @@ export function updateLobbyUI(players, isHost, myName) {
     const card = document.createElement('div');
     
     const isOffline = player.online === false;
-    const offlineBadge = isOffline ? '<span class="text-[9px] bg-red-500 text-white px-1.5 py-0.5 rounded ml-1 uppercase">Переподключение...</span>' : '';
+    const offlineBadge = isOffline ? '<span class="text-[8px] bg-red-500 text-white px-1 py-0.5 rounded ml-1 uppercase">Вышел</span>' : '';
 
-    // Базовый контейнер билета с разрешением перекрытия вырезов (overflow-visible)
-    card.className = `text-black border-4 border-black p-3 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} flex flex-col justify-between min-h-[135px] w-full relative overflow-visible`;
+    card.className = `text-black border-4 border-black p-3 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${rotationClass} flex flex-col justify-between min-h-[145px] w-full relative overflow-visible`;
     card.style.backgroundColor = player.color || '#fff1f2';
 
     const badgeHTML = player.isHost 
       ? '<span class="text-[9px] font-black uppercase bg-pink-500 text-white px-2 py-0.5 rounded border-2 border-black rotate-[2deg] shadow-[1px_1px_0px_rgba(0,0,0,1)] inline-block">ХОСТ</span>' 
       : '<span class="text-[9px] font-black uppercase bg-white text-black px-2 py-0.5 rounded border-2 border-black rotate-[-2deg] shadow-[1px_1px_0px_rgba(0,0,0,1)] inline-block">ИГРОК</span>';
 
-    // Отдельный стикер для текущего игрока
     const isMeHTML = player.name === myName 
       ? '<span class="text-[9px] font-black uppercase bg-yellow-400 text-black px-1.5 py-0.5 rounded border-2 border-black rotate-[-3deg] shadow-[1px_1px_0px_rgba(0,0,0,1)] inline-block mr-1">ТЫ</span>' 
       : '';
 
     card.innerHTML = `
-      <!-- Левый боковой вырез (Идеальный стык под цвет нового фона #1a1c47) -->
       <div class="absolute -left-[11px] top-[66%] -translate-y-1/2 w-5 h-5 rounded-full bg-[#1a1c47] border-r-4 border-black z-20"></div>
-      <!-- Правый боковой вырез (Идеальный стык под цвет нового фона #1a1c47) -->
       <div class="absolute -right-[11px] top-[66%] -translate-y-1/2 w-5 h-5 rounded-full bg-[#1a1c47] border-l-4 border-black z-20"></div>
 
-      <!-- КРУПНАЯ АВАТАРКА-ВОДЯНОЙ ЗНАК (Непрозрачность 60%, отцентрована строго выше линии отрыва) -->
+      <!-- Приглушенная прозрачность водяного знака для читаемости -->
       <div class="absolute top-0 inset-x-0 h-[66%] flex items-center justify-center pointer-events-none z-0 overflow-hidden select-none">
-        <span class="text-[72px] sm:text-[80px] select-none filter opacity-[0.6] select-none" style="mix-blend-mode: multiply;">${player.avatar || '🐱'}</span>
+        <span class="text-[64px] sm:text-[72px] select-none filter opacity-[0.12] pointer-events-none" style="mix-blend-mode: multiply;">${player.avatar || '🐱'}</span>
       </div>
 
-      <!-- 1. ШАПКА БИЛЕТА (z-10 поверх водяного знака) -->
       <div class="flex items-center justify-between w-full select-none z-10 relative">
         <div class="flex flex-col items-start leading-none opacity-70">
           <span class="text-[7px] font-mono tracking-wider font-black">PASS #00${index + 1}</span>
@@ -183,15 +175,13 @@ export function updateLobbyUI(players, isHost, myName) {
         </div>
       </div>
 
-      <!-- 2. Пустая область для сохранения вертикального баланса -->
       <div class="h-10 z-10"></div>
 
-      <!-- 3. ЛИНИЯ ОТРЫВА (z-10 поверх водяного знака) -->
       <div class="w-full border-t-4 border-dashed border-black/20 my-1 z-10 relative"></div>
 
-      <!-- 4. ОТРЫВНОЙ КУПОН: Чистый никнейм (z-10 поверх водяного знака) -->
-      <div class="w-full text-center z-10 relative">
-        <span class="font-black text-xs sm:text-sm tracking-tight leading-tight block truncate text-black" title="${player.name}">
+      <!-- Белая плашка для идеальной видимости никнейма -->
+      <div class="w-full text-center z-10 relative mt-0.5 flex justify-center">
+        <span class="inline-block bg-white text-black border-2 border-black px-2.5 py-1 rounded-lg font-black text-xs sm:text-sm tracking-tight leading-none truncate max-w-full uppercase shadow-[2px_2px_0px_rgba(0,0,0,1)]" title="${player.name}">
           ${player.name}${offlineBadge}
         </span>
       </div>
@@ -284,8 +274,8 @@ export function updateResultsUI(players, achievements, myName) {
 export function renderTargetPlayerTicket(player, container, index) {
   if (!container || !player) return;
   
-  // Принудительно задаем контейнеру стили и пропорции билетика
-  container.className = "text-black border-4 border-black p-3 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[135px] w-full max-w-[260px] mx-auto relative overflow-visible transform rotate-[1deg] text-left";
+  // w-[210px] sm:w-[230px] и shrink-0 принудительно запрещают сжатие билета на любых экранах
+  container.className = "text-black border-4 border-black p-3 rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[145px] w-[210px] sm:w-[230px] relative overflow-visible transform rotate-[1deg] text-left shrink-0";
   container.style.backgroundColor = player.color || '#fff1f2';
   
   const badgeHTML = player.isHost 
@@ -293,17 +283,14 @@ export function renderTargetPlayerTicket(player, container, index) {
     : '<span class="text-[9px] font-black uppercase bg-white text-black px-2 py-0.5 rounded border-2 border-black rotate-[-2deg] shadow-[1px_1px_0px_rgba(0,0,0,1)] inline-block">ИГРОК</span>';
 
   container.innerHTML = `
-    <!-- Левый боковой вырез (Идеальный стык под цвет нового фона #1a1c47) -->
     <div class="absolute -left-[11px] top-[66%] -translate-y-1/2 w-5 h-5 rounded-full bg-[#1a1c47] border-r-4 border-black z-20"></div>
-    <!-- Правый боковой вырез (Идеальный стык под цвет нового фона #1a1c47) -->
     <div class="absolute -right-[11px] top-[66%] -translate-y-1/2 w-5 h-5 rounded-full bg-[#1a1c47] border-l-4 border-black z-20"></div>
 
-    <!-- КРУПНАЯ АВАТАРКА-ВОДЯНОЙ ЗНАК (Непрозрачность 60%, отцентрована строго выше линии отрыва) -->
+    <!-- Очень тонкий водяной знак (прозрачность 0.12) для устранения каши за текстом -->
     <div class="absolute top-0 inset-x-0 h-[66%] flex items-center justify-center pointer-events-none z-0 overflow-hidden select-none">
-      <span class="text-[72px] sm:text-[80px] select-none filter opacity-[0.6] select-none" style="mix-blend-mode: multiply;">${player.avatar || '🐱'}</span>
+      <span class="text-[64px] sm:text-[72px] select-none filter opacity-[0.12] pointer-events-none" style="mix-blend-mode: multiply;">${player.avatar || '🐱'}</span>
     </div>
 
-    <!-- 1. ШАПКА БИЛЕТА (z-10 поверх водяного знака) -->
     <div class="flex items-center justify-between w-full select-none z-10 relative">
       <div class="flex flex-col items-start leading-none opacity-70">
         <span class="text-[7px] font-mono tracking-wider font-black">PASS #00${index + 1}</span>
@@ -314,15 +301,13 @@ export function renderTargetPlayerTicket(player, container, index) {
       </div>
     </div>
 
-    <!-- 2. Пустая область для сохранения вертикального баланса -->
     <div class="h-10 z-10"></div>
 
-    <!-- 3. ЛИНИЯ ОТРЫВА (z-10 поверх водяного знака) -->
     <div class="w-full border-t-4 border-dashed border-black/20 my-1 z-10 relative"></div>
 
-    <!-- 4. ОТРЫВНОЙ КУПОН: Чистый никнейм (z-10 поверх водяного знака) -->
-    <div class="w-full text-center z-10 relative">
-      <span class="font-black text-xs sm:text-sm tracking-tight leading-tight block truncate text-black" title="${player.name}">
+    <!-- Защитная белая плашка для безупречного считывания никнейма на любом фоне -->
+    <div class="w-full text-center z-10 relative mt-0.5 flex justify-center">
+      <span class="inline-block bg-white text-black border-2 border-black px-2.5 py-1 rounded-lg font-black text-xs sm:text-sm tracking-tight leading-none truncate max-w-full uppercase shadow-[2px_2px_0px_rgba(0,0,0,1)]" title="${player.name}">
         ${player.name}
       </span>
     </div>
