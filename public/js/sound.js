@@ -6,6 +6,18 @@ export function initAudio() {
   }
 }
 
+// Глобальная инициализация AudioContext на любой клик пользователя (препятствует блокировке звука браузером)
+if (typeof window !== 'undefined') {
+  const resumeAudioContext = () => {
+    initAudio();
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  };
+  window.addEventListener('click', resumeAudioContext, { passive: true });
+  window.addEventListener('touchstart', resumeAudioContext, { passive: true });
+}
+
 export function playSound(type) {
   initAudio();
   if (!audioCtx) return;

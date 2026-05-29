@@ -393,7 +393,6 @@ Object.entries(reactionMapping).forEach(([id, emoji]) => {
   if (btn) {
     btn.addEventListener('click', () => {
       if (reactionCooldown) {
-        showToast('Не торопись! Подожди немного перед следующей реакцией.', 1500, false);
         return;
       }
       playSound('click');
@@ -404,7 +403,7 @@ Object.entries(reactionMapping).forEach(([id, emoji]) => {
         setTimeout(() => {
           reactionCooldown = false;
           if (reactionPanel) reactionPanel.classList.remove('opacity-60');
-        }, 1000); 
+        }, 300); // Кулдаун снижен до 300мс
       }
     });
   }
@@ -528,6 +527,20 @@ socket.on('timer_tick', (data) => {
   const duration = data.duration || 60;
   const percentage = (data.timeLeft / duration) * 100;
   if (timerBar) timerBar.style.width = percentage + '%';
+
+  // Автоматическое сохранение персонажа по истечении времени, если в поле ввода что-то написано
+  if (data.timeLeft <= 0) {
+    const charInput = document.getElementById('character-input');
+    const waitingZone = document.getElementById('waiting-zone');
+    const isWaiting = waitingZone && !waitingZone.classList.contains('hidden');
+    if (charInput && charInput.value.trim() !== '' && !isWaiting) {
+      console.log("[DEBUG] Время вышло. Автоматически отправлен введенный текст персонажа:", charInput.value.trim());
+      socket.emit('submit_character', { 
+        roomCode: currentRoomCode, 
+        character: charInput.value.trim() 
+      });
+    }
+  }
 });
 
 socket.on('turn_timer_tick', (data) => {
@@ -713,6 +726,9 @@ socket.on('game_state_update', (data) => {
 socket.on('question_broadcast', (data) => {
   lastAskedQuestion = data.question;
   activePlayerId = data.activePlayerId;
+
+  // Проигрывание звукового сигнала уведомления о новом вопросе для всех игроков
+  playSound('alarm');
 
   const verdictText = document.getElementById('vote-verdict-text');
   if (verdictText) verdictText.classList.add('hidden');
@@ -933,3 +949,8 @@ socket.on('error_message', (message) => {
     sessionStorage.removeItem('roomCode');
   }
 });
+
+// Периодический фоновый пинг сервера каждые 25 секунд для защиты от засыпания Render
+setInterval(() => {
+  fetch('/ping').catch(() => {});
+}, 25000);

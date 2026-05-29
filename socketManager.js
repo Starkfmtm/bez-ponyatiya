@@ -21,6 +21,7 @@ function checkAndProcessRestartVote(io, room, roomCode) {
   });
 
   if (requiredVotes > 0 && room.restartVotes.length >= requiredVotes) {
+    console.log(`[DEBUG] Перезапуск комнаты [${roomCode}] по итогам голосования`);
     room.status = 'LOBBY';
     clearRoomTimers(room);
     room.currentQuestion = null;
@@ -56,7 +57,6 @@ function initSockets(io) {
     socket.on('create_room', (data) => {
       const { username, avatar } = data;
       if (!isValidUsername(username)) {
-        // Текст ошибки изменен с 15 до 20
         return socket.emit('error_message', 'Имя игрока должно быть от 1 до 20 символов.');
       }
 
@@ -91,7 +91,7 @@ function initSockets(io) {
             history: [],
             color: playerColors[0],
             online: true,
-            avatar: avatar || '🐱' // Сохраняем аватарку хоста
+            avatar: avatar || '🐱'
           }
         ],
         activePlayerIndex: 0,
@@ -109,8 +109,8 @@ function initSockets(io) {
       rooms.set(roomCode, newRoom);
       socket.join(roomCode);
 
-      console.log(`🏠 Создана комната: [${roomCode}] для игрока: ${username}`);
-      console.log("Активные комнаты на сервере:", Array.from(rooms.keys()));
+      console.log(`🏠 [DEBUG] Создана комната: [${roomCode}] для хоста: ${username}`);
+      console.log("[DEBUG] Активные комнаты на сервере:", Array.from(rooms.keys()));
 
       socket.emit('room_created', {
         roomCode,
@@ -126,7 +126,6 @@ function initSockets(io) {
         return socket.emit('error_message', 'Неверный формат кода комнаты.');
       }
       if (!isValidUsername(username)) {
-        // Текст ошибки изменен с 15 до 20
         return socket.emit('error_message', 'Имя должно быть от 1 до 20 символов.');
       }
 
@@ -134,7 +133,7 @@ function initSockets(io) {
       const room = rooms.get(cleanCode);
 
       console.log(`🔌 Попытка входа игрока [${username}] в комнату [${cleanCode}]`);
-      console.log("Доступные комнаты на сервере:", Array.from(rooms.keys()));
+      console.log("[DEBUG] Доступные комнаты на сервере:", Array.from(rooms.keys()));
 
       if (!room) {
         console.log(`❌ Ошибка: комната [${cleanCode}] не найдена!`);
@@ -142,6 +141,7 @@ function initSockets(io) {
       }
 
       if (room.deleteTimeout) {
+        console.log(`[DEBUG] Очистка deleteTimeout для комнаты [${cleanCode}] (игрок переподключился)`);
         clearTimeout(room.deleteTimeout);
         room.deleteTimeout = null;
       }
@@ -150,7 +150,6 @@ function initSockets(io) {
       const existingPlayer = room.players.find(p => p.name.toLowerCase() === trimmedName.toLowerCase());
 
       if (existingPlayer) {
-        // Очищаем таймер удаления из лобби, если он был запущен
         if (existingPlayer.disconnectTimeout) {
           clearTimeout(existingPlayer.disconnectTimeout);
           existingPlayer.disconnectTimeout = null;
@@ -236,7 +235,6 @@ function initSockets(io) {
       const newPlayer = {
         socketId: socket.id,
         name: trimmedName,
-        // Игрок становится хостом, если комната пуста или в ней физически нет другого хоста
         isHost: room.players.length === 0 || !room.players.some(p => p.isHost),
         character: null,
         targetPlayerId: null,
@@ -680,7 +678,7 @@ function initSockets(io) {
       }
     });
 
-    // 11. Отправка реакции
+    // 11. Отправка реакции (Кулдаун снижен до 300мс)
     socket.on('send_reaction', (data) => {
       const { emoji, roomCode } = data;
       if (!isValidRoomCode(roomCode)) return;
@@ -689,8 +687,17 @@ function initSockets(io) {
       if (!room) return;
 
       const sender = room.players.find(p => p.socketId === socket.id);
-      if (sender) sender.reactionsCount++;
-      const senderName = sender ? sender.name : 'Кто-то';
+      if (!sender) return;
+
+      // Backend Cooldown Check (300 миллисекунд)
+      const now = Date.now();
+      if (sender.lastReactionTime && (now - sender.lastReactionTime < 300)) {
+        return socket.emit('error_message', 'Слишком часто!');
+      }
+      sender.lastReactionTime = now;
+
+      sender.reactionsCount++;
+      const senderName = sender.name;
 
       io.to(room.roomCode).emit('broadcast_reaction', {
         emoji,
@@ -761,9 +768,14 @@ function initSockets(io) {
             const activeSockets = io.sockets.adapter.rooms.get(roomCode);
             if (!activeSockets || activeSockets.size === 0) {
               clearRoomTimers(room);
+              console.log(`⚠️ [DEBUG] Все игроки вышли из активной комнаты [${roomCode}]. Старт deleteTimeout на 5 минут.`);
               room.deleteTimeout = setTimeout(() => {
-                rooms.delete(roomCode);
-              }, 30000);
+                const checkRoom = rooms.get(roomCode);
+                if (checkRoom && (!io.sockets.adapter.rooms.get(roomCode) || io.sockets.adapter.rooms.get(roomCode).size === 0)) {
+                  console.log(`💀 [DEBUG] Истекло время ожидания. Комната [${roomCode}] удалена из памяти.`);
+                  rooms.delete(roomCode);
+                }
+              }, 300000); 
             } else {
               if (room.status === 'RESULTS') {
                 checkAndProcessRestartVote(io, room, roomCode);
@@ -807,12 +819,12 @@ function initSockets(io) {
             if (targetIndex !== -1) {
               const pObject = currentRoom.players[targetIndex];
               
-              // ЕСЛИ ИГРОК УСПЕШНО ВЕРНУЛСЯ (online = true), ПРЕРЫВАЕМ УДАЛЕНИЕ!
               if (pObject.online) {
                 return;
               }
 
               currentRoom.players.splice(targetIndex, 1);
+              console.log(`[DEBUG] Игрок [${leftPlayer.name}] удален из лобби [${roomCode}] после таймаута отключения.`);
               
               if (pObject.isHost && currentRoom.players.length > 0) {
                 currentRoom.players[0].isHost = true;
@@ -831,13 +843,17 @@ function initSockets(io) {
             const activeSockets = io.sockets.adapter.rooms.get(roomCode);
             if (!activeSockets || activeSockets.size === 0) {
               clearRoomTimers(currentRoom);
+              console.log(`⚠️ [DEBUG] Пустое лобби [${roomCode}]. Старт deleteTimeout на 2 минуты.`);
               currentRoom.deleteTimeout = setTimeout(() => {
-                rooms.delete(roomCode);
-              }, 5000);
+                const checkRoom = rooms.get(roomCode);
+                if (checkRoom && (!io.sockets.adapter.rooms.get(roomCode) || io.sockets.adapter.rooms.get(roomCode).size === 0)) {
+                  console.log(`💀 [DEBUG] Истекло время ожидания лобби. Комната [${roomCode}] удалена.`);
+                  rooms.delete(roomCode);
+                }
+              }, 120000);
             }
-          }, 2500); // 2.5 секунды ожидания перезагрузки
+          }, 4000); 
 
-          // Немедленно уведомляем остальных игроков, что участник временно не в сети
           room.players.forEach(p => {
             if (p.socketId !== socket.id) {
               io.to(p.socketId).emit('room_state_update', {

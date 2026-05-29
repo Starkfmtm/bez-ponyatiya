@@ -1,4 +1,3 @@
-// Импорт из той же директории
 const { getMaskedPlayersFor, calculateAchievements } = require('./roomManager');
 
 function clearRoomTimers(room) {
@@ -92,15 +91,31 @@ function passTurnToNext(io, rooms, room, roomCode) {
   }
 
   let nextIndex = room.activePlayerIndex;
+  let foundNext = false;
+
   for (let i = 0; i < room.players.length; i++) {
     nextIndex = (nextIndex + 1) % room.players.length;
-    if (!room.players[nextIndex].hasGuessed) {
+    const candidate = room.players[nextIndex];
+    if (!candidate.hasGuessed && candidate.online !== false) {
       room.activePlayerIndex = nextIndex;
+      foundNext = true;
       break;
     }
   }
 
+  if (!foundNext) {
+    for (let i = 0; i < room.players.length; i++) {
+      nextIndex = (nextIndex + 1) % room.players.length;
+      if (!room.players[nextIndex].hasGuessed) {
+        room.activePlayerIndex = nextIndex;
+        foundNext = true;
+        break;
+      }
+    }
+  }
+
   const nextActivePlayer = room.players[room.activePlayerIndex];
+  console.log(`[DEBUG] Ход в комнате [${roomCode}] передан игроку [${nextActivePlayer ? nextActivePlayer.name : '---'}]`);
 
   startTurnTimer(io, rooms, room, roomCode);
 
